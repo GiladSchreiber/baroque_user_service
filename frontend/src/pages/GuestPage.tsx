@@ -99,12 +99,15 @@ export default function GuestPage() {
     localStorage.setItem('baroque_palette', String(paletteIdx))
   }, [paletteIdx])
 
-  const navRef     = useRef<HTMLDivElement>(null)
-  const wifiRef    = useRef<HTMLElement>(null)
-  const menuRef    = useRef<HTMLElement>(null)
-  const foodRef    = useRef<HTMLDivElement>(null)
-  const coffeeRef  = useRef<HTMLDivElement>(null)
-  const alcoholRef = useRef<HTMLDivElement>(null)
+  const navRef      = useRef<HTMLDivElement>(null)
+  const concertsRef = useRef<HTMLElement>(null)
+  const wifiRef     = useRef<HTMLElement>(null)
+  const menuRef     = useRef<HTMLElement>(null)
+  const foodRef     = useRef<HTMLDivElement>(null)
+  const coffeeRef   = useRef<HTMLDivElement>(null)
+  const alcoholRef  = useRef<HTMLDivElement>(null)
+
+  const [concertImages, setConcertImages] = useState<string[]>([])
 
   const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
@@ -113,6 +116,13 @@ export default function GuestPage() {
   const [allItems, setAllItems]       = useState<MenuItem[]>([])
   const [menuLoading, setMenuLoading] = useState(true)
   const [menuError, setMenuError]     = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch(`${base}data/concerts.json`)
+      .then(r => r.json())
+      .then((files: string[]) => setConcertImages(files.sort()))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch(`${base}data/wifi.json`)
@@ -214,10 +224,10 @@ export default function GuestPage() {
       {/* ── SECTION NAV ── */}
       <div ref={navRef} className="flex justify-center gap-6 py-8 border-y border-baroque-border">
         <button
-          onClick={() => scrollTo(wifiRef.current)}
+          onClick={() => scrollTo(concertsRef.current)}
           className="btn-outline px-8 py-3 text-sm tracking-widest uppercase"
         >
-          WiFi
+          {t('Concerts', 'הופעות')}
         </button>
         <button
           onClick={() => scrollTo(menuRef.current)}
@@ -225,49 +235,27 @@ export default function GuestPage() {
         >
           {t('Menu', 'תפריט')}
         </button>
+        <button
+          onClick={() => scrollTo(wifiRef.current)}
+          className="btn-outline px-8 py-3 text-sm tracking-widest uppercase"
+        >
+          WiFi
+        </button>
       </div>
 
-      {/* ── WIFI SECTION ── */}
-      <section ref={wifiRef} className="flex flex-col items-center px-4 py-16">
-        <h2 className="section-title text-center mb-8">WiFi</h2>
-
-        {wifiLoading && (
-          <div className="card animate-pulse space-y-4">
-            <div className="h-4 bg-baroque-border rounded w-24 mx-auto" />
-            <div className="h-6 bg-baroque-border rounded w-40 mx-auto" />
-            <div className="h-px bg-baroque-border" />
-            <div className="h-4 bg-baroque-border rounded w-20 mx-auto" />
-            <div className="h-10 bg-baroque-border rounded" />
-          </div>
-        )}
-
-        {wifiError && !wifiLoading && (
-          <div className="card border-red-900 text-red-400 text-sm text-center">
-            {t('Could not load WiFi info', 'לא ניתן לטעון מידע WiFi')}
-          </div>
-        )}
-
-        {wifi && !wifiLoading && (
-          <div className="card w-72 h-72 flex flex-col items-center justify-center gap-4">
-            <QRCodeSVG
-              value={`WIFI:T:WPA;S:${wifi.ssid};P:${wifi.password};;`}
-              size={140}
-              bgColor="#ffffff"
-              fgColor="#000000"
-              className="rounded"
+      {/* ── CONCERTS SECTION ── */}
+      <section ref={concertsRef} className="max-w-2xl mx-auto px-4 py-16">
+        <h2 className="section-title text-center mb-8">{t('Concerts', 'לוח הופעות')}</h2>
+        <div className="flex flex-col gap-4">
+          {concertImages.map(file => (
+            <img
+              key={file}
+              src={`${base}images/concerts/${file}`}
+              alt=""
+              className="w-full rounded"
             />
-            <div dir="ltr" className="text-center space-y-3">
-              <div>
-                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Network', 'רשת')}</p>
-                <p className="text-baroque-text text-sm">{wifi.ssid}</p>
-              </div>
-              <div>
-                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Password', 'סיסמה')}</p>
-                <p className="text-baroque-text text-sm font-mono">{wifi.password}</p>
-              </div>
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
       </section>
 
       {/* ── MENU SECTION ── */}
@@ -310,6 +298,49 @@ export default function GuestPage() {
           }
         </div>
 
+      </section>
+
+      {/* ── WIFI SECTION ── */}
+      <section ref={wifiRef} className="flex flex-col items-center px-4 py-16">
+        <h2 className="section-title text-center mb-8">WiFi</h2>
+
+        {wifiLoading && (
+          <div className="card animate-pulse space-y-4">
+            <div className="h-4 bg-baroque-border rounded w-24 mx-auto" />
+            <div className="h-6 bg-baroque-border rounded w-40 mx-auto" />
+            <div className="h-px bg-baroque-border" />
+            <div className="h-4 bg-baroque-border rounded w-20 mx-auto" />
+            <div className="h-10 bg-baroque-border rounded" />
+          </div>
+        )}
+
+        {wifiError && !wifiLoading && (
+          <div className="card border-red-900 text-red-400 text-sm text-center">
+            {t('Could not load WiFi info', 'לא ניתן לטעון מידע WiFi')}
+          </div>
+        )}
+
+        {wifi && !wifiLoading && (
+          <div className="card w-72 h-72 flex flex-col items-center justify-center gap-4">
+            <QRCodeSVG
+              value={`WIFI:T:WPA;S:${wifi.ssid};P:${wifi.password};;`}
+              size={140}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              className="rounded"
+            />
+            <div dir="ltr" className="text-center space-y-3">
+              <div>
+                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Network', 'רשת')}</p>
+                <p className="text-baroque-text text-sm">{wifi.ssid}</p>
+              </div>
+              <div>
+                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Password', 'סיסמה')}</p>
+                <p className="text-baroque-text text-sm font-mono">{wifi.password}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── DEV: Palette picker ── */}
