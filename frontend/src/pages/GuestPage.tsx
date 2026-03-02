@@ -176,7 +176,6 @@ interface ConcertsScreenProps {
 }
 
 function ConcertsScreen({ concerts, base, fadingOut = false }: ConcertsScreenProps) {
-  const { t } = useLang()
   const [idx, setIdx] = useState(0)
   const [prevIdx, setPrevIdx] = useState<number | null>(null)
   const [dir, setDir] = useState<'left' | 'right'>('left')
@@ -353,10 +352,9 @@ export default function GuestPage() {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [history, setHistory] = useState<View[]>(['home'])
-  const view    = history[history.length - 1]
-  const navigate = (v: View) => setHistory(h => [...h, v])
-  const goBack   = () => setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
-  const goHome   = () => setHistory(['home'])
+  const view   = history[history.length - 1]
+  const goBack  = () => setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
+  const goHome  = () => setHistory(['home'])
 
   const [fadingOut, setFadingOut] = useState(false)
   const FADING_VIEWS: View[] = ['concerts', 'wifi', 'menu-food', 'menu-coffee', 'menu-alcohol', 'menu-pastries', 'second-hand']
