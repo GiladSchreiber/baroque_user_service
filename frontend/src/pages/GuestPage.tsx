@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { useLang } from '../context/LangContext'
 import CategorySection from '../components/CategorySection'
 import { FOOD_ORDER } from '../lib/menu'
@@ -108,7 +109,6 @@ export default function GuestPage() {
   const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
   const [wifiError, setWifiError]     = useState<string | null>(null)
-  const [copied, setCopied]           = useState(false)
 
   const [allItems, setAllItems]       = useState<MenuItem[]>([])
   const [menuLoading, setMenuLoading] = useState(true)
@@ -148,17 +148,10 @@ export default function GuestPage() {
     navRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  async function copyPassword() {
-    if (!wifi?.password) return
-    await navigator.clipboard.writeText(wifi.password)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   const tabBtn = (label: string, onClick: () => void) => (
     <button
       onClick={onClick}
-      className="px-6 py-2 text-xs tracking-widest uppercase font-medium text-baroque-muted hover:text-gold transition-colors duration-150"
+      className="px-6 py-2 text-sm tracking-widest uppercase font-medium text-baroque-text hover:text-gold transition-colors duration-150"
     >
       {label}
     </button>
@@ -235,7 +228,7 @@ export default function GuestPage() {
       </div>
 
       {/* ── WIFI SECTION ── */}
-      <section ref={wifiRef} className="max-w-sm mx-auto px-4 py-16">
+      <section ref={wifiRef} className="flex flex-col items-center px-4 py-16">
         <h2 className="section-title text-center mb-8">WiFi</h2>
 
         {wifiLoading && (
@@ -255,29 +248,23 @@ export default function GuestPage() {
         )}
 
         {wifi && !wifiLoading && (
-          <div className="card space-y-6">
-            <div>
-              <p className="text-baroque-muted text-xs tracking-widest uppercase mb-1">
-                {t('Network', 'רשת')}
-              </p>
-              <p className="text-baroque-text text-lg font-medium">{wifi.ssid}</p>
-            </div>
-            <div className="border-t border-baroque-border" />
-            <div>
-              <p className="text-baroque-muted text-xs tracking-widest uppercase mb-2">
-                {t('Password', 'סיסמה')}
-              </p>
-              <button
-                onClick={copyPassword}
-                className="w-full flex items-center justify-between bg-baroque-bg border border-baroque-border rounded px-4 py-3 group hover:border-gold transition-colors duration-150"
-              >
-                <span className="text-baroque-text font-mono tracking-wider">{wifi.password}</span>
-                <span className={`text-xs tracking-wide ms-4 shrink-0 transition-colors duration-150 ${
-                  copied ? 'text-green-400' : 'text-baroque-muted group-hover:text-gold'
-                }`}>
-                  {copied ? `✓ ${t('Copied', 'הועתק')}` : t('Tap to copy', 'הקש להעתקה')}
-                </span>
-              </button>
+          <div className="card w-72 h-72 flex flex-col items-center justify-center gap-4">
+            <QRCodeSVG
+              value={`WIFI:T:WPA;S:${wifi.ssid};P:${wifi.password};;`}
+              size={140}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              className="rounded"
+            />
+            <div dir="ltr" className="text-center space-y-3">
+              <div>
+                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Network', 'רשת')}</p>
+                <p className="text-baroque-text text-sm">{wifi.ssid}</p>
+              </div>
+              <div>
+                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Password', 'סיסמה')}</p>
+                <p className="text-baroque-text text-sm font-mono">{wifi.password}</p>
+              </div>
             </div>
           </div>
         )}
@@ -295,9 +282,6 @@ export default function GuestPage() {
 
         {/* Food subsection */}
         <div ref={foodRef} className="pt-10">
-          <h2 className="font-serif text-gold text-xl tracking-widest uppercase mb-6">
-            {t('Food', 'אוכל')}
-          </h2>
           {menuLoading
             ? <MenuSkeleton />
             : menuError
@@ -308,9 +292,6 @@ export default function GuestPage() {
 
         {/* Coffee subsection */}
         <div ref={coffeeRef} className="pt-14">
-          <h2 className="font-serif text-gold text-xl tracking-widest uppercase mb-6">
-            {t('Coffee', 'קפה')}
-          </h2>
           {menuLoading
             ? <MenuSkeleton />
             : menuError
@@ -321,9 +302,6 @@ export default function GuestPage() {
 
         {/* Alcohol subsection */}
         <div ref={alcoholRef} className="pt-14">
-          <h2 className="font-serif text-gold text-xl tracking-widest uppercase mb-6">
-            {t('Alcohol', 'אלכוהול')}
-          </h2>
           {menuLoading
             ? <MenuSkeleton />
             : menuError

@@ -13,7 +13,7 @@ const LangContext = createContext<LangContextValue | null>(null)
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Language>(
-    () => (localStorage.getItem('baroque_lang') as Language) ?? 'en'
+    () => (localStorage.getItem('baroque_lang') as Language) ?? 'he'
   )
 
   function setLang(l: Language) {

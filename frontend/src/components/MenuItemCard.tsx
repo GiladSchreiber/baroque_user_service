@@ -21,7 +21,7 @@ export default function MenuItemCard({ item }: Props) {
             <span className="text-green-600 text-xs" title="Vegetarian">🌿</span>
           )}
           {item.is_seasonal && (
-            <span className="text-amber-600 text-xs font-medium tracking-wide">seasonal</span>
+            <span className="text-amber-600 text-xs font-medium tracking-wide">{t('seasonal', 'לפי העונה')}</span>
           )}
         </div>
         {description && (
