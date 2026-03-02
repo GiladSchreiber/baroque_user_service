@@ -1,49 +1,35 @@
-import { useRef, useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLang } from '../context/LangContext'
 import CategorySection from '../components/CategorySection'
-import { FOOD_ORDER } from '../lib/menu'
 import type { MenuItem } from '../types'
 
-const NAV_HEIGHT       = 76   // height of the sticky main nav
-const SUB_NAV_HEIGHT   = 120  // nav + sub-nav bar combined
-const SCROLL_TOLERANCE = 4    // px fudge for sub-pixel viewport heights
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-const COFFEE_CATEGORIES    = ['coffee']
-const ALCOHOL_ORDER        = ['beer', 'cocktails', 'red_wine', 'white_wine', 'liqueurs']
-const SOFT_DRINKS_CATEGORY = ['soft_drinks']
-const PASTRIES_CATEGORY    = ['pastries']
-const FOOD_SAVOURY_ORDER   = FOOD_ORDER.filter(c => c !== 'pastries')
+type View =
+  | 'home'
+  | 'concerts'
+  | 'menu'
+  | 'menu-food'
+  | 'menu-coffee'
+  | 'menu-alcohol'
+  | 'menu-pastries'
+  | 'wifi'
+  | 'second-hand'
 
-// ── Dev palette switcher ───────────────────────────────────────────────────────
-type PaletteVars = Record<string, string>
-const PALETTES: { name: string; swatch: string; vars: PaletteVars }[] = [
-  {
-    name: 'Black & Gold',
-    swatch: '#c9a94d',
-    vars: { '--baroque-bg': '#14120f', '--baroque-surface': '#1e1c19', '--baroque-border': '#2e2b27', '--baroque-text': '#f0ebe1', '--baroque-muted': '#8c8580', '--gold': '#c9a94d', '--gold-light': '#dabb61', '--gold-dark': '#a88a38' },
-  },
-  {
-    name: 'Navy & Champagne',
-    swatch: '#c8bfa0',
-    vars: { '--baroque-bg': '#0d1117', '--baroque-surface': '#161c26', '--baroque-border': '#263040', '--baroque-text': '#e8dfc8', '--baroque-muted': '#7a8a9a', '--gold': '#c8bfa0', '--gold-light': '#ddd5bc', '--gold-dark': '#a09878' },
-  },
-  {
-    name: 'Burgundy & Blush',
-    swatch: '#c47a8a',
-    vars: { '--baroque-bg': '#120a0e', '--baroque-surface': '#1e1118', '--baroque-border': '#331826', '--baroque-text': '#f0e0e8', '--baroque-muted': '#8a6070', '--gold': '#c47a8a', '--gold-light': '#d99aaa', '--gold-dark': '#a05a6a' },
-  },
-  {
-    name: 'Forest & Copper',
-    swatch: '#b07848',
-    vars: { '--baroque-bg': '#0a0f0d', '--baroque-surface': '#141f1a', '--baroque-border': '#1f3028', '--baroque-text': '#e8ede6', '--baroque-muted': '#6a8070', '--gold': '#b07848', '--gold-light': '#c89060', '--gold-dark': '#906030' },
-  },
-  {
-    name: 'Plum & Amber',
-    swatch: '#d4943a',
-    vars: { '--baroque-bg': '#0f0a14', '--baroque-surface': '#1a1220', '--baroque-border': '#2e2040', '--baroque-text': '#ede8f5', '--baroque-muted': '#7a6890', '--gold': '#d4943a', '--gold-light': '#e8aa50', '--gold-dark': '#b07828' },
-  },
-]
+interface ConcertItem {
+  file: string
+  title: string
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const FOOD_CATS     = ['bread', 'salads', 'sandwiches', 'toasts', 'soup']
+const COFFEE_CATS   = ['coffee', 'soft_drinks']
+const ALCOHOL_CATS  = ['beer', 'cocktails', 'red_wine', 'white_wine', 'liqueurs']
+const PASTRIES_CATS = ['pastries']
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function groupByCategory(items: MenuItem[], order: string[]): [string, MenuItem[]][] {
   const map = new Map<string, MenuItem[]>()
@@ -52,10 +38,12 @@ function groupByCategory(items: MenuItem[], order: string[]): [string, MenuItem[
     bucket.push(item)
     map.set(item.category, bucket)
   }
-  const known = order.filter(c => map.has(c)).map(c => [c, map.get(c)!] as [string, MenuItem[]])
+  const known   = order.filter(c => map.has(c)).map(c => [c, map.get(c)!] as [string, MenuItem[]])
   const unknown = [...map.entries()].filter(([c]) => !order.includes(c))
   return [...known, ...unknown]
 }
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function MenuSkeleton() {
   return (
@@ -78,107 +66,341 @@ function MenuSkeleton() {
   )
 }
 
-export default function GuestPage() {
-  const { lang, setLang, t } = useLang()
+interface GridTileProps {
+  image: string
+  labelEn: string
+  labelHe: string
+  onClick?: () => void
+  animDelay?: number
+  animVariant?: 'pop' | 'flip'
+  animOut?: boolean
+}
 
-  const base = import.meta.env.BASE_URL
-  const COVER_IMAGES = [
-    `${base}images/cover_app1.jpg`,
-    `${base}images/cover_app2.jpg`,
-    `${base}images/cover_app3.jpg`,
-    `${base}images/cover_app4.jpg`,
-  ]
-  const [coverIdx, setCoverIdx] = useState(0)
+function GridTile({ image, labelEn, labelHe, onClick, animDelay = 0, animVariant = 'flip', animOut = false }: GridTileProps) {
+  const { t } = useLang()
+  return (
+    <div
+      className={`group relative overflow-hidden ${onClick ? 'cursor-pointer transition-transform duration-150 active:scale-[0.97]' : ''}`}
+      style={animOut
+        ? { animationName: 'tileFlipOut', animationDuration: '0.3s', animationTimingFunction: 'ease-in', animationFillMode: 'both' }
+        : { animationName: animVariant === 'flip' ? 'tileFlipIn' : 'tilePopIn', animationDuration: '0.4s', animationTimingFunction: 'ease-out', animationDelay: `${animDelay}ms`, animationFillMode: 'both' }
+      }
+      onClick={onClick}
+    >
+      <img src={image} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-300 group-hover:brightness-110" />
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 35%, var(--baroque-bg) 100%)' }} />
+      <div className="absolute top-[12%] left-0 right-0 flex justify-center px-3">
+        <span className="bg-baroque-bg text-baroque-text font-serif text-lg tracking-widest uppercase px-4 py-1.5 text-center">
+          {t(labelEn, labelHe)}
+        </span>
+      </div>
+    </div>
+  )
+}
 
-  useEffect(() => {
-    const id = setInterval(() => setCoverIdx(i => (i + 1) % COVER_IMAGES.length), 2000)
-    return () => clearInterval(id)
-  }, [])
+interface MenuCategoryScreenProps {
+  cats: string[]
+  allItems: MenuItem[]
+  loading: boolean
+  error: string | null
+  fadingOut?: boolean
+}
 
-  const [paletteIdx, setPaletteIdx] = useState(
-    () => parseInt(localStorage.getItem('baroque_palette') ?? '4')
+function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false }: MenuCategoryScreenProps) {
+  const { t, lang } = useLang()
+  const items   = allItems.filter(i => cats.includes(i.category))
+  const grouped = groupByCategory(items, cats)
+  return (
+    <div
+      dir={lang === 'he' ? 'rtl' : 'ltr'}
+      className="flex-1 overflow-y-auto px-4 py-6"
+      style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
+    >
+      {loading
+        ? <MenuSkeleton />
+        : error
+          ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
+          : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} />)
+      }
+    </div>
+  )
+}
+
+interface NoEventsScreenProps {
+  base: string
+  fadingOut?: boolean
+  subtext?: { en: string; he: string }
+}
+
+function NoEventsScreen({ base, fadingOut = false, subtext }: NoEventsScreenProps) {
+  const { t, lang } = useLang()
+  return (
+    <div
+      className="flex-1 flex flex-col items-center justify-center px-10 py-8"
+      style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
+    >
+      <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="card w-full flex flex-col items-center gap-5 py-[77px] text-center">
+        <p className="text-baroque-text text-2xl font-bold">
+          {t('No upcoming events', 'אין אירועים קרובים')}
+        </p>
+        {subtext && (
+          <p className="text-baroque-muted text-base leading-relaxed">
+            {t(subtext.en, subtext.he)}
+          </p>
+        )}
+        <a
+          href="https://instagram.com/baroquebarcafe"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-baroque-text hover:text-gold transition-colors duration-150 mt-2"
+        >
+          <span className="flex items-center justify-center w-4 h-4 shrink-0">
+            <img
+              src={`${base}images/contact/instagram.svg`}
+              alt="Instagram"
+              className="w-full h-full"
+              style={{ filter: 'invert(85%) sepia(20%) saturate(300%) hue-rotate(5deg)' }}
+            />
+          </span>
+          <span className="text-base">{t('Leave details on Instagram', 'השאירו פרטים באינסטגרם')}</span>
+        </a>
+      </div>
+    </div>
+  )
+}
+
+interface ConcertsScreenProps {
+  concerts: ConcertItem[]
+  base: string
+  fadingOut?: boolean
+}
+
+function ConcertsScreen({ concerts, base, fadingOut = false }: ConcertsScreenProps) {
+  const { t } = useLang()
+  const [idx, setIdx] = useState(0)
+  const [prevIdx, setPrevIdx] = useState<number | null>(null)
+  const [dir, setDir] = useState<'left' | 'right'>('left')
+  const animating = useRef(false)
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
+
+  const changeIdx = (newIdx: number, direction: 'left' | 'right') => {
+    if (newIdx === idx || animating.current) return
+    animating.current = true
+    setDir(direction)
+    setPrevIdx(idx)
+    setIdx(newIdx)
+    setTimeout(() => {
+      setPrevIdx(null)
+      animating.current = false
+    }, 300)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => setTouchStartX(e.touches[0].clientX)
+  const onTouchEnd   = (e: React.TouchEvent) => {
+    if (touchStartX === null || concerts.length === 0) return
+    const dx = e.changedTouches[0].clientX - touchStartX
+    if (Math.abs(dx) > 50) {
+      changeIdx(
+        dx < 0 ? (idx + 1) % concerts.length : (idx - 1 + concerts.length) % concerts.length,
+        dx < 0 ? 'left' : 'right'
+      )
+    }
+    setTouchStartX(null)
+  }
+
+  if (concerts.length === 0) {
+    return <NoEventsScreen base={base} fadingOut={fadingOut} subtext={{ en: 'Want to perform here?', he: 'רוצה להופיע כאן?' }} />
+  }
+
+  const slideInAnim  = dir === 'left' ? 'slideFromRight' : 'slideFromLeft'
+  const slideOutAnim = dir === 'left' ? 'slideOutLeft'   : 'slideOutRight'
+
+  const renderCard = (i: number) => (
+    <>
+      <p className="shrink-0 text-baroque-text text-xl font-bold tracking-wide px-4 pt-5 pb-1 text-center">
+        {concerts[i].title}
+      </p>
+      <div className="flex-1 relative">
+        <img
+          src={`${base}images/concerts/${concerts[i].file}`}
+          alt={concerts[i].title}
+          className="absolute inset-0 w-full h-full object-contain"
+        />
+      </div>
+    </>
   )
 
-  useEffect(() => {
-    const vars = PALETTES[paletteIdx].vars
-    const root = document.documentElement
-    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
-    localStorage.setItem('baroque_palette', String(paletteIdx))
-  }, [paletteIdx])
-
-  const [showScrollTop, setShowScrollTop] = useState(false)
-  useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 400)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  const navRef      = useRef<HTMLDivElement>(null)
-  const concertsRef = useRef<HTMLElement>(null)
-  const wifiRef     = useRef<HTMLElement>(null)
-  const menuRef     = useRef<HTMLElement>(null)
-  const foodRef       = useRef<HTMLDivElement>(null)
-  const pastriesRef   = useRef<HTMLDivElement>(null)
-  const coffeeRef     = useRef<HTMLDivElement>(null)
-  const softDrinksRef = useRef<HTMLDivElement>(null)
-  const alcoholRef    = useRef<HTMLDivElement>(null)
-
-  const [concertImages, setConcertImages] = useState<string[]>([])
-
-  const [activeMainSection, setActiveMainSection] = useState<'concerts' | 'menu' | 'wifi' | null>(null)
-  const [activeMenuSection, setActiveMenuSection] = useState<'food' | 'pastries' | 'coffee' | 'soft_drinks' | 'alcohol'>('food')
-
-  // Scrollspy: last section whose top has crossed the sticky nav wins.
-  // This is reliably correct: once a section scrolls past the nav, its
-  // getBoundingClientRect().top is ≤ threshold regardless of how far past it you are,
-  // so iterating in DOM order and keeping the last match gives the correct active section.
-  useEffect(() => {
-    const mainOrder = [
-      { id: 'concerts' as const, ref: concertsRef },
-      { id: 'menu'     as const, ref: menuRef     },
-      { id: 'wifi'     as const, ref: wifiRef     },
-    ]
-    const subOrder = [
-      { id: 'food'        as const, ref: foodRef       },
-      { id: 'pastries'    as const, ref: pastriesRef   },
-      { id: 'coffee'      as const, ref: coffeeRef     },
-      { id: 'soft_drinks' as const, ref: softDrinksRef },
-      { id: 'alcohol'     as const, ref: alcoholRef    },
-    ]
-    const onScroll = () => {
-      let nextMain: 'concerts' | 'menu' | 'wifi' | null = null
-      for (const { id, ref } of mainOrder) {
-        if (ref.current && ref.current.getBoundingClientRect().top <= NAV_HEIGHT + SCROLL_TOLERANCE) {
-          nextMain = id
+  return (
+    <>
+      <style>{`
+        @keyframes slideFromRight {
+          from { transform: translateX(100%);  }
+          to   { transform: translateX(0);     }
         }
-      }
-      setActiveMainSection(nextMain)
-
-      let nextSub: 'food' | 'pastries' | 'coffee' | 'soft_drinks' | 'alcohol' = 'food'
-      for (const { id, ref } of subOrder) {
-        if (ref.current && ref.current.getBoundingClientRect().top <= SUB_NAV_HEIGHT + SCROLL_TOLERANCE) {
-          nextSub = id
+        @keyframes slideFromLeft {
+          from { transform: translateX(-100%); }
+          to   { transform: translateX(0);     }
         }
-      }
-      setActiveMenuSection(nextSub)
+        @keyframes slideOutLeft {
+          from { transform: translateX(0);     }
+          to   { transform: translateX(-100%); }
+        }
+        @keyframes slideOutRight {
+          from { transform: translateX(0);    }
+          to   { transform: translateX(100%); }
+        }
+      `}</style>
+      <div
+        className="flex-1 overflow-hidden flex flex-col"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
+      >
+        <div className="flex-1 relative overflow-hidden">
+          {/* Outgoing card */}
+          {prevIdx !== null && (
+            <div
+              className="absolute inset-0 flex flex-col"
+              style={{ animation: `${slideOutAnim} 0.3s ease-out forwards` }}
+            >
+              {renderCard(prevIdx)}
+            </div>
+          )}
+          {/* Incoming card */}
+          <div
+            key={idx}
+            className="absolute inset-0 flex flex-col"
+            style={prevIdx !== null ? { animation: `${slideInAnim} 0.3s ease-out` } : {}}
+          >
+            {renderCard(idx)}
+          </div>
+        </div>
+        <div className="flex justify-center gap-3 py-3 shrink-0">
+          {concerts.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => changeIdx(i, i > idx ? 'left' : 'right')}
+              className={`w-2 h-2 rounded-full transition-colors duration-150 ${
+                i === idx ? 'bg-gold' : 'bg-baroque-border'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+interface WifiScreenProps {
+  wifi: { ssid: string; password: string } | null
+  loading: boolean
+  error: string | null
+  fadingOut?: boolean
+}
+
+function WifiScreen({ wifi, loading, error, fadingOut = false }: WifiScreenProps) {
+  const { t } = useLang()
+  return (
+    <div
+      className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-8"
+      style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
+    >
+      {loading && (
+        <div className="card animate-pulse space-y-5 w-full">
+          <div className="h-48 bg-baroque-border rounded mx-auto w-48" />
+          <div className="h-4 bg-baroque-border rounded w-24 mx-auto" />
+          <div className="h-6 bg-baroque-border rounded w-48 mx-auto" />
+          <div className="h-px bg-baroque-border" />
+          <div className="h-4 bg-baroque-border rounded w-20 mx-auto" />
+          <div className="h-6 bg-baroque-border rounded w-40 mx-auto" />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="card border-red-900 text-red-400 text-sm text-center">
+          {t('Could not load WiFi info', 'לא ניתן לטעון מידע WiFi')}
+        </div>
+      )}
+      {wifi && !loading && (
+        <div className="card w-full flex flex-col items-center gap-6 py-8">
+          <QRCodeSVG
+            value={`WIFI:T:WPA;S:${wifi.ssid};P:${wifi.password};;`}
+            size={220}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            className="rounded"
+          />
+          <div dir="ltr" className="text-center space-y-4 w-full">
+            <div>
+              <p className="text-baroque-muted text-xs tracking-widest uppercase mb-1">{t('Network', 'רשת')}</p>
+              <p className="text-baroque-text text-base font-mono">{wifi.ssid}</p>
+            </div>
+            <div>
+              <p className="text-baroque-muted text-xs tracking-widest uppercase mb-1">{t('Password', 'סיסמה')}</p>
+              <p className="text-baroque-text text-base font-mono">{wifi.password}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
+export default function GuestPage() {
+  const { lang, setLang, t } = useLang()
+  const base = import.meta.env.BASE_URL
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  const [history, setHistory] = useState<View[]>(['home'])
+  const view    = history[history.length - 1]
+  const navigate = (v: View) => setHistory(h => [...h, v])
+  const goBack   = () => setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
+  const goHome   = () => setHistory(['home'])
+
+  const [fadingOut, setFadingOut] = useState(false)
+  const FADING_VIEWS: View[] = ['concerts', 'wifi', 'menu-food', 'menu-coffee', 'menu-alcohol', 'menu-pastries', 'second-hand']
+  const goBackWithFade = () => {
+    if (fadingOut) return
+    if (FADING_VIEWS.includes(view)) {
+      setFadingOut(true)
+      setTimeout(() => { goBack(); setFadingOut(false) }, 300)
+    } else {
+      goBack()
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll() // set initial state on mount
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }
 
+  const [leaving, setLeaving]       = useState(false)
+  const [pendingNav, setPendingNav] = useState<View | null>(null)
+
+  const navigateWithAnim = (v: View) => {
+    setLeaving(true)
+    setPendingNav(v)
+  }
+
+  useEffect(() => {
+    if (!leaving || !pendingNav) return
+    const timer = setTimeout(() => {
+      setHistory(h => [...h, pendingNav])
+      setLeaving(false)
+      setPendingNav(null)
+    }, 320)
+    return () => clearTimeout(timer)
+  }, [leaving, pendingNav])
+
+  // ── Data ────────────────────────────────────────────────────────────────────
+  const [concerts, setConcerts]       = useState<ConcertItem[]>([])
+  const [allItems, setAllItems]       = useState<MenuItem[]>([])
+  const [menuLoading, setMenuLoading] = useState(true)
+  const [menuError, setMenuError]     = useState<string | null>(null)
   const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
   const [wifiError, setWifiError]     = useState<string | null>(null)
 
-  const [allItems, setAllItems]       = useState<MenuItem[]>([])
-  const [menuLoading, setMenuLoading] = useState(true)
-  const [menuError, setMenuError]     = useState<string | null>(null)
-
   useEffect(() => {
     fetch(`${base}data/concerts.json`)
       .then(r => r.json())
-      .then((files: string[]) => setConcertImages(files.sort()))
+      .then((data: ConcertItem[]) => setConcerts(data))
       .catch(() => {})
   }, [])
 
@@ -198,255 +420,170 @@ export default function GuestPage() {
       .finally(() => setMenuLoading(false))
   }, [])
 
-  const foodItems       = allItems.filter(i => i.menu_type === 'food' && i.category !== 'pastries')
-  const pastriesItems   = allItems.filter(i => i.menu_type === 'food' && i.category === 'pastries')
-  const drinkItems      = allItems.filter(i => i.menu_type === 'drink')
-  const coffeeItems     = drinkItems.filter(i => COFFEE_CATEGORIES.includes(i.category))
-  const softDrinkItems  = drinkItems.filter(i => SOFT_DRINKS_CATEGORY.includes(i.category))
-  const alcoholItems    = drinkItems.filter(i => ALCOHOL_ORDER.includes(i.category))
-
-  const groupedFood       = groupByCategory(foodItems,      FOOD_SAVOURY_ORDER)
-  const groupedPastries   = groupByCategory(pastriesItems,  PASTRIES_CATEGORY)
-  const groupedCoffee     = groupByCategory(coffeeItems,    COFFEE_CATEGORIES)
-  const groupedSoftDrinks = groupByCategory(softDrinkItems, SOFT_DRINKS_CATEGORY)
-  const groupedAlcohol    = groupByCategory(alcoholItems,   ALCOHOL_ORDER)
-
-  function scrollTo(el: HTMLElement | null) {
-    if (!el) return
-    const top = el.getBoundingClientRect().top + window.scrollY - NAV_HEIGHT
-    window.scrollTo({ top, behavior: 'smooth' })
-  }
-
-  function pickLang(l: 'en' | 'he') {
-    setLang(l)
-    scrollTo(concertsRef.current)
-  }
-
-  const tabBtn = (label: string, onClick: () => void, active: boolean) => (
-    <button
-      onClick={onClick}
-      className={`px-3 py-2 text-xs tracking-widest uppercase font-medium transition-colors duration-150 border-b-2 focus:outline-none ${
-        active ? 'text-gold border-gold' : 'text-baroque-muted border-transparent'
-      }`}
-    >
-      {label}
-    </button>
-  )
+  // ── Render ──────────────────────────────────────────────────────────────────
+  const isHome = view === 'home'
 
   return (
-    <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="bg-baroque-bg text-baroque-text">
+    <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
+      {/* ── Header ── */}
+      <header className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-baroque-border bg-baroque-bg">
+        {/* Lang toggle — always left */}
+        <div className="w-10">
+          <button
+            onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
+            className="w-8 h-8 rounded-full border border-gold text-baroque-text text-xs tracking-wider flex items-center justify-center"
+          >
+            {lang === 'en' ? 'He' : 'En'}
+          </button>
+        </div>
 
-      {/* ── HERO ── */}
-      <section className="relative h-screen overflow-hidden flex flex-col items-center justify-center gap-12">
-
-        {/* Background slideshow */}
-        {COVER_IMAGES.map((src, i) => (
+        {/* Logo */}
+        <button onClick={goHome} className="flex items-center focus:outline-none">
           <img
-            key={src}
-            src={src}
-            alt=""
-            aria-hidden
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-            style={{
-              opacity: i === coverIdx ? 1 : 0,
-              filter: 'grayscale(1)',
-            }}
+            src={`${base}logo.png`}
+            alt="Baroque"
+            className="h-9 w-auto"
+            style={{ filter: 'invert(1)' }}
           />
-        ))}
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/70" />
-
-        {/* Content */}
-        <img
-          src={`${base}logo.png`}
-          alt="Baroque"
-          className="relative z-10 h-64 w-auto"
-          style={{ filter: 'invert(1)' }}
-        />
-        <div dir="ltr" className="relative z-10 flex gap-4">
-          <button
-            onClick={() => pickLang('en')}
-            className={`px-10 py-4 font-serif text-lg tracking-wider border rounded transition-colors duration-200 ${
-              lang === 'en'
-                ? 'bg-gold text-baroque-bg border-gold'
-                : 'border-baroque-border text-baroque-muted hover:border-gold hover:text-baroque-text'
-            }`}
-          >
-            English
-          </button>
-          <button
-            onClick={() => pickLang('he')}
-            className={`px-10 py-4 font-serif text-lg tracking-wider border rounded transition-colors duration-200 ${
-              lang === 'he'
-                ? 'bg-gold text-baroque-bg border-gold'
-                : 'border-baroque-border text-baroque-muted hover:border-gold hover:text-baroque-text'
-            }`}
-          >
-            עברית
-          </button>
-        </div>
-      </section>
-
-      {/* ── SECTION NAV ── */}
-      <div ref={navRef} className="sticky top-0 z-20 flex justify-center gap-6 py-4 bg-baroque-bg border-y border-baroque-border">
-        {(['concerts', 'menu', 'wifi'] as const).map((section) => {
-          const label = section === 'concerts' ? t('Concerts', 'הופעות') : section === 'menu' ? t('Menu', 'תפריט') : 'WiFi'
-          const ref = section === 'concerts' ? concertsRef : section === 'menu' ? menuRef : wifiRef
-          const active = activeMainSection === section
-          return (
-            <button
-              key={section}
-              onClick={() => scrollTo(ref.current)}
-              className={`px-8 py-3 text-sm tracking-widest uppercase font-medium rounded transition-colors duration-150 border focus:outline-none ${
-                active
-                  ? 'bg-gold text-baroque-bg border-gold'
-                  : 'border-gold/50 text-gold/60'
-              }`}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ── CONCERTS SECTION ── */}
-      <section ref={concertsRef} className="min-h-screen max-w-2xl mx-auto px-4 py-16">
-        <h2 className="section-title text-center mb-8">{t('Concerts', 'לוח הופעות')}</h2>
-        <div className="flex flex-col gap-4">
-          {concertImages.map(file => (
-            <img
-              key={file}
-              src={`${base}images/concerts/${file}`}
-              alt=""
-              className="w-full rounded"
-            />
-          ))}
-        </div>
-      </section>
-
-      <div className="border-t-2 border-baroque-border" />
-
-      {/* ── MENU SECTION ── */}
-      <section ref={menuRef} className="max-w-2xl mx-auto px-4 pb-24">
-
-        {/* Sticky category tabs */}
-        <div className="sticky top-[76px] z-10 bg-baroque-bg border-b border-baroque-border flex justify-between -mx-4 px-2 py-2">
-          {tabBtn(t('Food', 'אוכל'),           () => scrollTo(foodRef.current),       activeMainSection === 'menu' && activeMenuSection === 'food')}
-          {tabBtn(t('Pastries', 'מאפים'),      () => scrollTo(pastriesRef.current),   activeMainSection === 'menu' && activeMenuSection === 'pastries')}
-          {tabBtn(t('Coffee', 'קפה'),          () => scrollTo(coffeeRef.current),     activeMainSection === 'menu' && activeMenuSection === 'coffee')}
-          {tabBtn(t('Soft Drinks', 'שתייה קלה'), () => scrollTo(softDrinksRef.current), activeMainSection === 'menu' && activeMenuSection === 'soft_drinks')}
-          {tabBtn(t('Alcohol', 'אלכוהול'),     () => scrollTo(alcoholRef.current),   activeMainSection === 'menu' && activeMenuSection === 'alcohol')}
-        </div>
-
-        {/* Food subsection */}
-        <div ref={foodRef} className="pt-10">
-          {menuLoading ? <MenuSkeleton /> : menuError
-            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-            : groupedFood.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
-        </div>
-
-        {/* Pastries subsection */}
-        <div ref={pastriesRef} className="pt-14">
-          {menuLoading ? <MenuSkeleton /> : menuError
-            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-            : groupedPastries.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
-        </div>
-
-        {/* Coffee subsection */}
-        <div ref={coffeeRef} className="pt-14">
-          {menuLoading ? <MenuSkeleton /> : menuError
-            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-            : groupedCoffee.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
-        </div>
-
-        {/* Soft Drinks subsection */}
-        <div ref={softDrinksRef} className="pt-14">
-          {menuLoading ? <MenuSkeleton /> : menuError
-            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-            : groupedSoftDrinks.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
-        </div>
-
-        {/* Alcohol subsection */}
-        <div ref={alcoholRef} className="pt-14">
-          {menuLoading ? <MenuSkeleton /> : menuError
-            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-            : groupedAlcohol.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
-        </div>
-
-      </section>
-
-      <div className="border-t-2 border-baroque-border" />
-
-      {/* ── WIFI SECTION ── */}
-      <section ref={wifiRef} className="min-h-screen flex flex-col items-center px-4 pt-16">
-        <h2 className="section-title text-center mb-8">WiFi</h2>
-
-        {wifiLoading && (
-          <div className="card animate-pulse space-y-4">
-            <div className="h-4 bg-baroque-border rounded w-24 mx-auto" />
-            <div className="h-6 bg-baroque-border rounded w-40 mx-auto" />
-            <div className="h-px bg-baroque-border" />
-            <div className="h-4 bg-baroque-border rounded w-20 mx-auto" />
-            <div className="h-10 bg-baroque-border rounded" />
-          </div>
-        )}
-
-        {wifiError && !wifiLoading && (
-          <div className="card border-red-900 text-red-400 text-sm text-center">
-            {t('Could not load WiFi info', 'לא ניתן לטעון מידע WiFi')}
-          </div>
-        )}
-
-        {wifi && !wifiLoading && (
-          <div className="card w-72 h-72 flex flex-col items-center justify-center gap-4">
-            <QRCodeSVG
-              value={`WIFI:T:WPA;S:${wifi.ssid};P:${wifi.password};;`}
-              size={140}
-              bgColor="#ffffff"
-              fgColor="#000000"
-              className="rounded"
-            />
-            <div dir="ltr" className="text-center space-y-3">
-              <div>
-                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Network', 'רשת')}</p>
-                <p className="text-baroque-text text-sm">{wifi.ssid}</p>
-              </div>
-              <div>
-                <p className="text-baroque-muted text-xs tracking-widest uppercase mb-0.5">{t('Password', 'סיסמה')}</p>
-                <p className="text-baroque-text text-sm font-mono">{wifi.password}</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── Scroll to top ── */}
-      {showScrollTop && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-50 w-10 h-10 flex items-center justify-center bg-baroque-surface border border-baroque-border rounded-full text-baroque-muted hover:text-gold hover:border-gold transition-colors duration-150 shadow-lg"
-          aria-label="Scroll to top"
-        >
-          ↑
         </button>
-      )}
 
-      {/* ── DEV: Palette picker ── */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-baroque-surface border border-baroque-border rounded-full px-4 py-2 shadow-lg">
-        <span className="text-baroque-muted text-xs tracking-widest uppercase me-1">Palette</span>
-        {PALETTES.map((p, i) => (
-          <button
-            key={p.name}
-            title={p.name}
-            onClick={() => setPaletteIdx(i)}
-            style={{ backgroundColor: p.swatch }}
-            className={`w-6 h-6 rounded-full transition-transform duration-150 ${
-              i === paletteIdx ? 'ring-2 ring-offset-2 ring-offset-baroque-surface ring-white scale-110' : 'opacity-60 hover:opacity-100'
-            }`}
-          />
-        ))}
-        <span className="text-baroque-muted text-xs ms-1">{PALETTES[paletteIdx].name}</span>
+        {/* Back button — always right */}
+        <div className="w-10 flex justify-end">
+          {!isHome && (
+            <button
+              onClick={goBackWithFade}
+              className="text-baroque-text text-xl p-1"
+              aria-label={t('Go back', 'חזור')}
+            >
+              →
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* ── Screen content ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Home grid */}
+        {isHome && (
+          <div className="grid grid-cols-2 grid-rows-2 flex-1">
+            <GridTile
+              image={`${base}images/categories/concerts.jpg`}
+              labelEn="Concerts"
+              labelHe="לוח הופעות"
+              onClick={() => navigateWithAnim('concerts')}
+              animDelay={0}   animOut={leaving}
+            />
+            <GridTile
+              image={`${base}images/categories/menu.jpg`}
+              labelEn="Menu"
+              labelHe="תפריט"
+              onClick={() => navigateWithAnim('menu')}
+              animDelay={100} animOut={leaving}
+            />
+            <GridTile
+              image={`${base}images/categories/wifi.jpeg`}
+              labelEn="WiFi"
+              labelHe="WiFi"
+              onClick={() => navigateWithAnim('wifi')}
+              animDelay={200} animOut={leaving}
+            />
+            <GridTile
+              image={`${base}images/categories/yad2.jpeg`}
+              labelEn="Second Hand"
+              labelHe="יד שנייה"
+              onClick={() => navigateWithAnim('second-hand')}
+              animDelay={300} animOut={leaving}
+            />
+          </div>
+        )}
+
+        {/* Menu sub-grid */}
+        {view === 'menu' && (
+          <div className="grid grid-cols-2 grid-rows-2 flex-1">
+            <GridTile
+              image={`${base}images/categories/food.jpg`}
+              labelEn="Food"
+              labelHe="מטבח"
+              onClick={() => navigateWithAnim('menu-food')}
+              animVariant="flip" animDelay={0}   animOut={leaving}
+            />
+            <GridTile
+              image={`${base}images/categories/coffee.jpg`}
+              labelEn="Coffee"
+              labelHe="קפה"
+              onClick={() => navigateWithAnim('menu-coffee')}
+              animVariant="flip" animDelay={100} animOut={leaving}
+            />
+            <GridTile
+              image={`${base}images/categories/alcohol.jpeg`}
+              labelEn="Alcohol"
+              labelHe="אלכוהול"
+              onClick={() => navigateWithAnim('menu-alcohol')}
+              animVariant="flip" animDelay={200} animOut={leaving}
+            />
+            <GridTile
+              image={`${base}images/categories/pastries.jpg`}
+              labelEn="Pastries"
+              labelHe="מאפים"
+              onClick={() => navigateWithAnim('menu-pastries')}
+              animVariant="flip" animDelay={300} animOut={leaving}
+            />
+          </div>
+        )}
+
+        {/* Concerts screen */}
+        {view === 'concerts' && <ConcertsScreen concerts={concerts} base={base} fadingOut={fadingOut} />}
+
+        {/* Menu category screens */}
+        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+
+        {/* WiFi screen */}
+        {view === 'wifi' && <WifiScreen wifi={wifi} loading={wifiLoading} error={wifiError} fadingOut={fadingOut} />}
+
+        {/* Second Hand screen */}
+        {view === 'second-hand' && <NoEventsScreen base={base} fadingOut={fadingOut} subtext={{ en: 'Have items to sell or share?', he: 'יש לך פריטים למכור או לשתף?' }} />}
+
       </div>
+
+      {/* ── Footer ── */}
+      <footer className="shrink-0 flex items-center justify-center gap-8 px-4 py-4 border-t border-baroque-border">
+        <a
+          href="https://instagram.com/baroquebarcafe"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-baroque-text hover:text-gold transition-colors duration-150"
+        >
+          <span className="flex items-center justify-center w-4 h-4 shrink-0">
+            <img
+              src={`${base}images/contact/instagram.svg`}
+              alt="Instagram"
+              className="w-full h-full opacity-70"
+              style={{ filter: 'invert(85%) sepia(20%) saturate(300%) hue-rotate(5deg)' }}
+            />
+          </span>
+          <span className="text-[0.8rem] tracking-wide">baroquebarcafe</span>
+        </a>
+        <a
+          href="https://maps.google.com/?q=Ben+Sira+3+Jerusalem"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-baroque-text hover:text-gold transition-colors duration-150"
+        >
+          <span className="text-[0.8rem] tracking-wide">{t('Ben Sira 3, Jerusalem', 'בן סירא 3, ירושלים')}</span>
+          <span className="flex items-center justify-center w-4 h-4 shrink-0">
+            <img
+              src={`${base}images/contact/location.svg`}
+              alt="Location"
+              className="w-full h-full opacity-70"
+              style={{ filter: 'invert(85%) sepia(20%) saturate(300%) hue-rotate(5deg)' }}
+            />
+          </span>
+        </a>
+      </footer>
     </div>
   )
 }
