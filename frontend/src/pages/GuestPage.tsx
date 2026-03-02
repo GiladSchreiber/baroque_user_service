@@ -5,8 +5,15 @@ import CategorySection from '../components/CategorySection'
 import { FOOD_ORDER } from '../lib/menu'
 import type { MenuItem } from '../types'
 
-const COFFEE_CATEGORIES = ['coffee']
-const ALCOHOL_ORDER = ['beer', 'cocktails', 'red_wine', 'white_wine', 'liqueurs', 'soft_drinks']
+const NAV_HEIGHT       = 76   // height of the sticky main nav
+const SUB_NAV_HEIGHT   = 120  // nav + sub-nav bar combined
+const SCROLL_TOLERANCE = 4    // px fudge for sub-pixel viewport heights
+
+const COFFEE_CATEGORIES    = ['coffee']
+const ALCOHOL_ORDER        = ['beer', 'cocktails', 'red_wine', 'white_wine', 'liqueurs']
+const SOFT_DRINKS_CATEGORY = ['soft_drinks']
+const PASTRIES_CATEGORY    = ['pastries']
+const FOOD_SAVOURY_ORDER   = FOOD_ORDER.filter(c => c !== 'pastries')
 
 // ── Dev palette switcher ───────────────────────────────────────────────────────
 type PaletteVars = Record<string, string>
@@ -89,7 +96,7 @@ export default function GuestPage() {
   }, [])
 
   const [paletteIdx, setPaletteIdx] = useState(
-    () => parseInt(localStorage.getItem('baroque_palette') ?? '1')
+    () => parseInt(localStorage.getItem('baroque_palette') ?? '4')
   )
 
   useEffect(() => {
@@ -110,11 +117,55 @@ export default function GuestPage() {
   const concertsRef = useRef<HTMLElement>(null)
   const wifiRef     = useRef<HTMLElement>(null)
   const menuRef     = useRef<HTMLElement>(null)
-  const foodRef     = useRef<HTMLDivElement>(null)
-  const coffeeRef   = useRef<HTMLDivElement>(null)
-  const alcoholRef  = useRef<HTMLDivElement>(null)
+  const foodRef       = useRef<HTMLDivElement>(null)
+  const pastriesRef   = useRef<HTMLDivElement>(null)
+  const coffeeRef     = useRef<HTMLDivElement>(null)
+  const softDrinksRef = useRef<HTMLDivElement>(null)
+  const alcoholRef    = useRef<HTMLDivElement>(null)
 
   const [concertImages, setConcertImages] = useState<string[]>([])
+
+  const [activeMainSection, setActiveMainSection] = useState<'concerts' | 'menu' | 'wifi' | null>(null)
+  const [activeMenuSection, setActiveMenuSection] = useState<'food' | 'pastries' | 'coffee' | 'soft_drinks' | 'alcohol'>('food')
+
+  // Scrollspy: last section whose top has crossed the sticky nav wins.
+  // This is reliably correct: once a section scrolls past the nav, its
+  // getBoundingClientRect().top is ≤ threshold regardless of how far past it you are,
+  // so iterating in DOM order and keeping the last match gives the correct active section.
+  useEffect(() => {
+    const mainOrder = [
+      { id: 'concerts' as const, ref: concertsRef },
+      { id: 'menu'     as const, ref: menuRef     },
+      { id: 'wifi'     as const, ref: wifiRef     },
+    ]
+    const subOrder = [
+      { id: 'food'        as const, ref: foodRef       },
+      { id: 'pastries'    as const, ref: pastriesRef   },
+      { id: 'coffee'      as const, ref: coffeeRef     },
+      { id: 'soft_drinks' as const, ref: softDrinksRef },
+      { id: 'alcohol'     as const, ref: alcoholRef    },
+    ]
+    const onScroll = () => {
+      let nextMain: 'concerts' | 'menu' | 'wifi' | null = null
+      for (const { id, ref } of mainOrder) {
+        if (ref.current && ref.current.getBoundingClientRect().top <= NAV_HEIGHT + SCROLL_TOLERANCE) {
+          nextMain = id
+        }
+      }
+      setActiveMainSection(nextMain)
+
+      let nextSub: 'food' | 'pastries' | 'coffee' | 'soft_drinks' | 'alcohol' = 'food'
+      for (const { id, ref } of subOrder) {
+        if (ref.current && ref.current.getBoundingClientRect().top <= SUB_NAV_HEIGHT + SCROLL_TOLERANCE) {
+          nextSub = id
+        }
+      }
+      setActiveMenuSection(nextSub)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll() // set initial state on mount
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
@@ -147,28 +198,36 @@ export default function GuestPage() {
       .finally(() => setMenuLoading(false))
   }, [])
 
-  const foodItems    = allItems.filter(i => i.menu_type === 'food')
-  const drinkItems   = allItems.filter(i => i.menu_type === 'drink')
-  const coffeeItems  = drinkItems.filter(i => COFFEE_CATEGORIES.includes(i.category))
-  const alcoholItems = drinkItems.filter(i => ALCOHOL_ORDER.includes(i.category))
+  const foodItems       = allItems.filter(i => i.menu_type === 'food' && i.category !== 'pastries')
+  const pastriesItems   = allItems.filter(i => i.menu_type === 'food' && i.category === 'pastries')
+  const drinkItems      = allItems.filter(i => i.menu_type === 'drink')
+  const coffeeItems     = drinkItems.filter(i => COFFEE_CATEGORIES.includes(i.category))
+  const softDrinkItems  = drinkItems.filter(i => SOFT_DRINKS_CATEGORY.includes(i.category))
+  const alcoholItems    = drinkItems.filter(i => ALCOHOL_ORDER.includes(i.category))
 
-  const groupedFood    = groupByCategory(foodItems,    FOOD_ORDER)
-  const groupedCoffee  = groupByCategory(coffeeItems,  COFFEE_CATEGORIES)
-  const groupedAlcohol = groupByCategory(alcoholItems, ALCOHOL_ORDER)
+  const groupedFood       = groupByCategory(foodItems,      FOOD_SAVOURY_ORDER)
+  const groupedPastries   = groupByCategory(pastriesItems,  PASTRIES_CATEGORY)
+  const groupedCoffee     = groupByCategory(coffeeItems,    COFFEE_CATEGORIES)
+  const groupedSoftDrinks = groupByCategory(softDrinkItems, SOFT_DRINKS_CATEGORY)
+  const groupedAlcohol    = groupByCategory(alcoholItems,   ALCOHOL_ORDER)
 
   function scrollTo(el: HTMLElement | null) {
-    el?.scrollIntoView({ behavior: 'smooth' })
+    if (!el) return
+    const top = el.getBoundingClientRect().top + window.scrollY - NAV_HEIGHT
+    window.scrollTo({ top, behavior: 'smooth' })
   }
 
   function pickLang(l: 'en' | 'he') {
     setLang(l)
-    navRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollTo(concertsRef.current)
   }
 
-  const tabBtn = (label: string, onClick: () => void) => (
+  const tabBtn = (label: string, onClick: () => void, active: boolean) => (
     <button
       onClick={onClick}
-      className="px-6 py-2 text-sm tracking-widest uppercase font-medium text-baroque-text hover:text-gold transition-colors duration-150"
+      className={`px-3 py-2 text-xs tracking-widest uppercase font-medium transition-colors duration-150 border-b-2 focus:outline-none ${
+        active ? 'text-gold border-gold' : 'text-baroque-muted border-transparent'
+      }`}
     >
       {label}
     </button>
@@ -206,16 +265,6 @@ export default function GuestPage() {
         />
         <div dir="ltr" className="relative z-10 flex gap-4">
           <button
-            onClick={() => pickLang('he')}
-            className={`px-10 py-4 font-serif text-lg tracking-wider border rounded transition-colors duration-200 ${
-              lang === 'he'
-                ? 'bg-gold text-baroque-bg border-gold'
-                : 'border-baroque-border text-baroque-muted hover:border-gold hover:text-baroque-text'
-            }`}
-          >
-            עברית
-          </button>
-          <button
             onClick={() => pickLang('en')}
             className={`px-10 py-4 font-serif text-lg tracking-wider border rounded transition-colors duration-200 ${
               lang === 'en'
@@ -225,33 +274,43 @@ export default function GuestPage() {
           >
             English
           </button>
+          <button
+            onClick={() => pickLang('he')}
+            className={`px-10 py-4 font-serif text-lg tracking-wider border rounded transition-colors duration-200 ${
+              lang === 'he'
+                ? 'bg-gold text-baroque-bg border-gold'
+                : 'border-baroque-border text-baroque-muted hover:border-gold hover:text-baroque-text'
+            }`}
+          >
+            עברית
+          </button>
         </div>
       </section>
 
       {/* ── SECTION NAV ── */}
-      <div ref={navRef} className="flex justify-center gap-6 py-8 border-y border-baroque-border">
-        <button
-          onClick={() => scrollTo(concertsRef.current)}
-          className="btn-outline px-8 py-3 text-sm tracking-widest uppercase"
-        >
-          {t('Concerts', 'הופעות')}
-        </button>
-        <button
-          onClick={() => scrollTo(menuRef.current)}
-          className="btn-outline px-8 py-3 text-sm tracking-widest uppercase"
-        >
-          {t('Menu', 'תפריט')}
-        </button>
-        <button
-          onClick={() => scrollTo(wifiRef.current)}
-          className="btn-outline px-8 py-3 text-sm tracking-widest uppercase"
-        >
-          WiFi
-        </button>
+      <div ref={navRef} className="sticky top-0 z-20 flex justify-center gap-6 py-4 bg-baroque-bg border-y border-baroque-border">
+        {(['concerts', 'menu', 'wifi'] as const).map((section) => {
+          const label = section === 'concerts' ? t('Concerts', 'הופעות') : section === 'menu' ? t('Menu', 'תפריט') : 'WiFi'
+          const ref = section === 'concerts' ? concertsRef : section === 'menu' ? menuRef : wifiRef
+          const active = activeMainSection === section
+          return (
+            <button
+              key={section}
+              onClick={() => scrollTo(ref.current)}
+              className={`px-8 py-3 text-sm tracking-widest uppercase font-medium rounded transition-colors duration-150 border focus:outline-none ${
+                active
+                  ? 'bg-gold text-baroque-bg border-gold'
+                  : 'border-gold/50 text-gold/60'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
 
       {/* ── CONCERTS SECTION ── */}
-      <section ref={concertsRef} className="max-w-2xl mx-auto px-4 py-16">
+      <section ref={concertsRef} className="min-h-screen max-w-2xl mx-auto px-4 py-16">
         <h2 className="section-title text-center mb-8">{t('Concerts', 'לוח הופעות')}</h2>
         <div className="flex flex-col gap-4">
           {concertImages.map(file => (
@@ -265,50 +324,61 @@ export default function GuestPage() {
         </div>
       </section>
 
+      <div className="border-t-2 border-baroque-border" />
+
       {/* ── MENU SECTION ── */}
       <section ref={menuRef} className="max-w-2xl mx-auto px-4 pb-24">
 
         {/* Sticky category tabs */}
-        <div className="sticky top-0 z-10 bg-baroque-bg border-b border-baroque-border flex -mx-4 px-4 py-2">
-          {tabBtn(t('Food', 'אוכל'),         () => scrollTo(foodRef.current))}
-          {tabBtn(t('Coffee', 'קפה'),        () => scrollTo(coffeeRef.current))}
-          {tabBtn(t('Alcohol', 'אלכוהול'),   () => scrollTo(alcoholRef.current))}
+        <div className="sticky top-[76px] z-10 bg-baroque-bg border-b border-baroque-border flex justify-between -mx-4 px-2 py-2">
+          {tabBtn(t('Food', 'אוכל'),           () => scrollTo(foodRef.current),       activeMainSection === 'menu' && activeMenuSection === 'food')}
+          {tabBtn(t('Pastries', 'מאפים'),      () => scrollTo(pastriesRef.current),   activeMainSection === 'menu' && activeMenuSection === 'pastries')}
+          {tabBtn(t('Coffee', 'קפה'),          () => scrollTo(coffeeRef.current),     activeMainSection === 'menu' && activeMenuSection === 'coffee')}
+          {tabBtn(t('Soft Drinks', 'שתייה קלה'), () => scrollTo(softDrinksRef.current), activeMainSection === 'menu' && activeMenuSection === 'soft_drinks')}
+          {tabBtn(t('Alcohol', 'אלכוהול'),     () => scrollTo(alcoholRef.current),   activeMainSection === 'menu' && activeMenuSection === 'alcohol')}
         </div>
 
         {/* Food subsection */}
         <div ref={foodRef} className="pt-10">
-          {menuLoading
-            ? <MenuSkeleton />
-            : menuError
-              ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-              : groupedFood.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)
-          }
+          {menuLoading ? <MenuSkeleton /> : menuError
+            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
+            : groupedFood.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
+        </div>
+
+        {/* Pastries subsection */}
+        <div ref={pastriesRef} className="pt-14">
+          {menuLoading ? <MenuSkeleton /> : menuError
+            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
+            : groupedPastries.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
         </div>
 
         {/* Coffee subsection */}
         <div ref={coffeeRef} className="pt-14">
-          {menuLoading
-            ? <MenuSkeleton />
-            : menuError
-              ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-              : groupedCoffee.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)
-          }
+          {menuLoading ? <MenuSkeleton /> : menuError
+            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
+            : groupedCoffee.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
+        </div>
+
+        {/* Soft Drinks subsection */}
+        <div ref={softDrinksRef} className="pt-14">
+          {menuLoading ? <MenuSkeleton /> : menuError
+            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
+            : groupedSoftDrinks.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
         </div>
 
         {/* Alcohol subsection */}
         <div ref={alcoholRef} className="pt-14">
-          {menuLoading
-            ? <MenuSkeleton />
-            : menuError
-              ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-              : groupedAlcohol.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)
-          }
+          {menuLoading ? <MenuSkeleton /> : menuError
+            ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
+            : groupedAlcohol.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)}
         </div>
 
       </section>
 
+      <div className="border-t-2 border-baroque-border" />
+
       {/* ── WIFI SECTION ── */}
-      <section ref={wifiRef} className="flex flex-col items-center px-4 py-16">
+      <section ref={wifiRef} className="min-h-screen flex flex-col items-center px-4 pt-16">
         <h2 className="section-title text-center mb-8">WiFi</h2>
 
         {wifiLoading && (
