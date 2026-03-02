@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --baroque-bg:      #0d1117;
+  --baroque-surface: #161c26;
+  --baroque-border:  #263040;
+  --baroque-text:    #e8dfc8;
+  --baroque-muted:   #7a8a9a;
+  --gold:            #c8bfa0;
+  --gold-light:      #ddd5bc;
+  --gold-dark:       #a09878;
+}
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--baroque-bg);
+    color: var(--baroque-text);
+    font-family: 'Assistant', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-serif {
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-gold text-baroque-bg font-medium px-4 py-2 rounded hover:bg-gold-light transition-colors duration-150;
+  }
+
+  .btn-outline {
+    @apply border border-gold text-gold px-4 py-2 rounded hover:bg-gold hover:text-baroque-bg transition-colors duration-150;
+  }
+
+  .card {
+    @apply bg-baroque-surface border border-baroque-border rounded-lg p-4;
+  }
+
+  .section-title {
+    @apply font-serif text-gold text-xl tracking-widest uppercase mb-4;
+  }
+
+  .input {
+    @apply mt-1 w-full bg-baroque-surface border border-baroque-border rounded px-3 py-2
+           text-baroque-text text-sm focus:outline-none focus:border-gold
+           transition-colors duration-150;
+  }
+
+  select.input {
+    @apply cursor-pointer;
+  }
+}
