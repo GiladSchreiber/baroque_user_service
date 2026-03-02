@@ -74,11 +74,12 @@ function MenuSkeleton() {
 export default function GuestPage() {
   const { lang, setLang, t } = useLang()
 
+  const base = import.meta.env.BASE_URL
   const COVER_IMAGES = [
-    '/images/cover_app1.jpg',
-    '/images/cover_app2.jpg',
-    '/images/cover_app3.jpg',
-    '/images/cover_app4.jpg',
+    `${base}images/cover_app1.jpg`,
+    `${base}images/cover_app2.jpg`,
+    `${base}images/cover_app3.jpg`,
+    `${base}images/cover_app4.jpg`,
   ]
   const [coverIdx, setCoverIdx] = useState(0)
 
@@ -181,7 +182,7 @@ export default function GuestPage() {
 
         {/* Content */}
         <img
-          src="/logo.png"
+          src={`${base}logo.png`}
           alt="Baroque"
           className="relative z-10 h-64 w-auto"
           style={{ filter: 'invert(1)' }}

@@ -25,7 +25,7 @@ export default function NavBar() {
       <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link to="/">
-          <img src="/logo.png" alt="Baroque" className="h-7 w-auto" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Baroque" className="h-7 w-auto" />
         </Link>
 
         <div className="flex items-center gap-6">
