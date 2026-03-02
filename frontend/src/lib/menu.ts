@@ -18,9 +18,6 @@ export const CATEGORY_META: Record<string, { en: string; he: string }> = {
   liqueurs:    { en: 'Spirits',     he: 'ליקרים' },
 }
 
-export const FOOD_ORDER    = ['bread', 'salads', 'sandwiches', 'toasts', 'soup', 'pastries']
-export const DRINK_ORDER   = ['coffee', 'soft_drinks', 'beer', 'cocktails', 'red_wine', 'white_wine', 'liqueurs']
-
 // ── Price formatting ──────────────────────────────────────────────────────────
 
 export function formatPrice(display: string): string {

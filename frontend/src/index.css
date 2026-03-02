@@ -40,11 +40,6 @@
   to   { opacity: 0; }
 }
 
-@keyframes tilePopIn {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-
 @keyframes tileFlipIn {
   from { opacity: 0; transform: perspective(800px) rotateY(-80deg); }
   to   { opacity: 1; transform: perspective(800px) rotateY(0deg);   }
@@ -56,29 +51,7 @@
 }
 
 @layer components {
-  .btn-gold {
-    @apply bg-gold text-baroque-bg font-medium px-4 py-2 rounded hover:bg-gold-light transition-colors duration-150;
-  }
-
-  .btn-outline {
-    @apply border border-gold text-gold px-4 py-2 rounded hover:bg-gold hover:text-baroque-bg transition-colors duration-150;
-  }
-
   .card {
     @apply bg-baroque-surface border border-baroque-border rounded-lg p-4;
-  }
-
-  .section-title {
-    @apply font-serif text-gold text-xl tracking-widest uppercase mb-4;
-  }
-
-  .input {
-    @apply mt-1 w-full bg-baroque-surface border border-baroque-border rounded px-3 py-2
-           text-baroque-text text-sm focus:outline-none focus:border-gold
-           transition-colors duration-150;
-  }
-
-  select.input {
-    @apply cursor-pointer;
   }
 }
