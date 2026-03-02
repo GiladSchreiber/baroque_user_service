@@ -194,7 +194,7 @@ export default function GuestPage() {
           className="relative z-10 h-64 w-auto"
           style={{ filter: 'invert(1)' }}
         />
-        <div className="relative z-10 flex gap-4">
+        <div dir="ltr" className="relative z-10 flex gap-4">
           <button
             onClick={() => pickLang('he')}
             className={`px-10 py-4 font-serif text-lg tracking-wider border rounded transition-colors duration-200 ${
