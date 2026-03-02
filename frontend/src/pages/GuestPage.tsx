@@ -1,9 +1,8 @@
 import { useRef, useEffect, useState } from 'react'
-import { api, type MenuItem } from '../api/client'
-import { useMenuItems } from '../hooks/useMenuItems'
 import { useLang } from '../context/LangContext'
 import CategorySection from '../components/CategorySection'
 import { FOOD_ORDER } from '../lib/menu'
+import type { MenuItem } from '../types'
 
 const COFFEE_CATEGORIES = ['coffee']
 const ALCOHOL_ORDER = ['beer', 'cocktails', 'red_wine', 'white_wine', 'liqueurs', 'soft_drinks']
@@ -106,25 +105,33 @@ export default function GuestPage() {
   const coffeeRef  = useRef<HTMLDivElement>(null)
   const alcoholRef = useRef<HTMLDivElement>(null)
 
-  const [wifi, setWifi]           = useState<{ ssid: string; password: string } | null>(null)
+  const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
-  const [wifiError, setWifiError] = useState<string | null>(null)
-  const [copied, setCopied]       = useState(false)
+  const [wifiError, setWifiError]     = useState<string | null>(null)
+  const [copied, setCopied]           = useState(false)
 
-  const { items: foodItems,  loading: foodLoading,  error: foodError  } = useMenuItems('food')
-  const { items: drinkItems, loading: drinkLoading, error: drinkError } = useMenuItems('drink')
+  const [allItems, setAllItems]       = useState<MenuItem[]>([])
+  const [menuLoading, setMenuLoading] = useState(true)
+  const [menuError, setMenuError]     = useState<string | null>(null)
 
   useEffect(() => {
-    api.config.wifi()
-      .then(entries => {
-        const ssid     = entries.find(e => e.key === 'wifi_ssid')?.value     ?? ''
-        const password = entries.find(e => e.key === 'wifi_password')?.value ?? ''
-        setWifi({ ssid, password })
-      })
+    fetch(`${base}data/wifi.json`)
+      .then(r => { if (!r.ok) throw new Error('wifi fetch failed'); return r.json() })
+      .then(data => setWifi(data))
       .catch((e: Error) => setWifiError(e.message))
       .finally(() => setWifiLoading(false))
   }, [])
 
+  useEffect(() => {
+    fetch(`${base}data/menu.json`)
+      .then(r => { if (!r.ok) throw new Error('menu fetch failed'); return r.json() })
+      .then(data => setAllItems(data))
+      .catch((e: Error) => setMenuError(e.message))
+      .finally(() => setMenuLoading(false))
+  }, [])
+
+  const foodItems    = allItems.filter(i => i.menu_type === 'food')
+  const drinkItems   = allItems.filter(i => i.menu_type === 'drink')
   const coffeeItems  = drinkItems.filter(i => COFFEE_CATEGORIES.includes(i.category))
   const alcoholItems = drinkItems.filter(i => ALCOHOL_ORDER.includes(i.category))
 
@@ -291,9 +298,9 @@ export default function GuestPage() {
           <h2 className="font-serif text-gold text-xl tracking-widest uppercase mb-6">
             {t('Food', 'אוכל')}
           </h2>
-          {foodLoading
+          {menuLoading
             ? <MenuSkeleton />
-            : foodError
+            : menuError
               ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
               : groupedFood.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)
           }
@@ -304,9 +311,9 @@ export default function GuestPage() {
           <h2 className="font-serif text-gold text-xl tracking-widest uppercase mb-6">
             {t('Coffee', 'קפה')}
           </h2>
-          {drinkLoading
+          {menuLoading
             ? <MenuSkeleton />
-            : drinkError
+            : menuError
               ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
               : groupedCoffee.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)
           }
@@ -317,9 +324,9 @@ export default function GuestPage() {
           <h2 className="font-serif text-gold text-xl tracking-widest uppercase mb-6">
             {t('Alcohol', 'אלכוהול')}
           </h2>
-          {drinkLoading
+          {menuLoading
             ? <MenuSkeleton />
-            : drinkError
+            : menuError
               ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
               : groupedAlcohol.map(([cat, items]) => <CategorySection key={cat} category={cat} items={items} />)
           }

@@ -1,7 +1,7 @@
-import type { MenuItem } from '../api/client'
 import { useLang } from '../context/LangContext'
 import { CATEGORY_META } from '../lib/menu'
 import MenuItemCard from './MenuItemCard'
+import type { MenuItem } from '../types'
 
 interface Props {
   category: string
@@ -21,7 +21,7 @@ export default function CategorySection({ category, items }: Props) {
       </div>
       <div>
         {items.map(item => (
-          <MenuItemCard key={item.id} item={item} />
+          <MenuItemCard key={item.name_en} item={item} />
         ))}
       </div>
     </section>

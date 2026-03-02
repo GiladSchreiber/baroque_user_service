@@ -1,4 +1,4 @@
-import type { MenuItem } from '../api/client'
+import type { MenuItem } from '../types'
 import { useLang } from '../context/LangContext'
 import { formatPrice } from '../lib/menu'
 
