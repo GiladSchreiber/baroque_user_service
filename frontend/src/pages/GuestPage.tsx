@@ -99,6 +99,13 @@ export default function GuestPage() {
     localStorage.setItem('baroque_palette', String(paletteIdx))
   }, [paletteIdx])
 
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   const navRef      = useRef<HTMLDivElement>(null)
   const concertsRef = useRef<HTMLElement>(null)
   const wifiRef     = useRef<HTMLElement>(null)
@@ -342,6 +349,17 @@ export default function GuestPage() {
           </div>
         )}
       </section>
+
+      {/* ── Scroll to top ── */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 w-10 h-10 flex items-center justify-center bg-baroque-surface border border-baroque-border rounded-full text-baroque-muted hover:text-gold hover:border-gold transition-colors duration-150 shadow-lg"
+          aria-label="Scroll to top"
+        >
+          ↑
+        </button>
+      )}
 
       {/* ── DEV: Palette picker ── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-baroque-surface border border-baroque-border rounded-full px-4 py-2 shadow-lg">
