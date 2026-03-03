@@ -350,6 +350,44 @@ export default function GuestPage() {
   const { lang, setLang, t } = useLang()
   const base = import.meta.env.BASE_URL
 
+  // ── Image preloading ─────────────────────────────────────────────────────────
+  const [imagesReady, setImagesReady] = useState(false)
+  useEffect(() => {
+    const staticSrcs = [
+      `${base}logo.png`,
+      `${base}images/categories/concerts.jpg`,
+      `${base}images/categories/menu.jpg`,
+      `${base}images/categories/wifi.jpeg`,
+      `${base}images/categories/yad2.jpeg`,
+      `${base}images/categories/food.jpg`,
+      `${base}images/categories/coffee.jpg`,
+      `${base}images/categories/alcohol.jpeg`,
+      `${base}images/categories/pastries.jpg`,
+    ]
+
+    const preload = (srcs: string[]) => {
+      if (srcs.length === 0) { setImagesReady(true); return }
+      let remaining = srcs.length
+      const done = () => { if (--remaining === 0) setImagesReady(true) }
+      srcs.forEach(src => {
+        const img = new Image()
+        img.onload = done
+        img.onerror = done
+        img.src = src
+      })
+    }
+
+    // Fetch concerts.json first so we can also preload the concert images
+    fetch(`${base}data/concerts.json`)
+      .then(r => r.json())
+      .then((data: ConcertItem[]) => {
+        setConcerts(data)
+        const concertSrcs = data.map((c: ConcertItem) => `${base}images/concerts/${c.file}`)
+        preload([...staticSrcs, ...concertSrcs])
+      })
+      .catch(() => preload(staticSrcs))
+  }, [base])
+
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [history, setHistory] = useState<View[]>(['home'])
   const view   = history[history.length - 1]
@@ -395,12 +433,6 @@ export default function GuestPage() {
   const [wifiLoading, setWifiLoading] = useState(true)
   const [wifiError, setWifiError]     = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch(`${base}data/concerts.json`)
-      .then(r => r.json())
-      .then((data: ConcertItem[]) => setConcerts(data))
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     fetch(`${base}data/wifi.json`)
@@ -420,6 +452,19 @@ export default function GuestPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   const isHome = view === 'home'
+
+  if (!imagesReady) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-baroque-bg">
+        <img
+          src={`${base}logo.png`}
+          alt="Baroque"
+          className="h-12 w-auto animate-pulse"
+          style={{ filter: 'invert(1)' }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
