@@ -54,4 +54,11 @@
   .card {
     @apply bg-baroque-surface border border-baroque-border rounded-lg p-4;
   }
+
+  /* Safe-area bottom padding with guaranteed minimum for Android nav bars.
+     Two rules: older browsers get 64px, modern browsers get max(64px, env()). */
+  .pb-safe {
+    padding-bottom: 64px;
+    padding-bottom: max(64px, env(safe-area-inset-bottom));
+  }
 }

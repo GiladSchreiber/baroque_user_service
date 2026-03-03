@@ -20,6 +20,7 @@ type View =
 interface ConcertItem {
   file: string
   title: string
+  title_he?: string
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -176,6 +177,7 @@ interface ConcertsScreenProps {
 }
 
 function ConcertsScreen({ concerts, base, fadingOut = false }: ConcertsScreenProps) {
+  const { t } = useLang()
   const [idx, setIdx] = useState(0)
   const [prevIdx, setPrevIdx] = useState<number | null>(null)
   const [dir, setDir] = useState<'left' | 'right'>('left')
@@ -217,7 +219,7 @@ function ConcertsScreen({ concerts, base, fadingOut = false }: ConcertsScreenPro
   const renderCard = (i: number) => (
     <>
       <p className="shrink-0 text-baroque-text text-xl font-bold tracking-wide px-4 pt-5 pb-1 text-center">
-        {concerts[i].title}
+        {t(concerts[i].title, concerts[i].title_he ?? concerts[i].title)}
       </p>
       <div className="flex-1 relative">
         <img
@@ -469,7 +471,7 @@ export default function GuestPage() {
   return (
     <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
       {/* ── Header ── */}
-      <header className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-baroque-border bg-baroque-bg">
+      <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '62px' }}>
         {/* Lang toggle — always left */}
         <div className="w-10">
           <button
@@ -495,10 +497,13 @@ export default function GuestPage() {
           {!isHome && (
             <button
               onClick={goBackWithFade}
-              className="text-baroque-text text-4xl p-2 leading-none"
+              className="flex items-center justify-center w-11 h-11 text-baroque-text"
               aria-label={t('Go back', 'חזור')}
             >
-              →
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
             </button>
           )}
         </div>
@@ -593,7 +598,7 @@ export default function GuestPage() {
       </div>
 
       {/* ── Footer ── */}
-      <footer className="shrink-0 flex items-center justify-center gap-8 px-4 py-4 border-t border-baroque-border" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+      <footer className="shrink-0 flex items-center justify-center gap-8 px-4 pt-4 pb-safe border-t border-baroque-border">
         <a
           href="https://www.instagram.com/baroque_bar_cafe/"
           target="_blank"
