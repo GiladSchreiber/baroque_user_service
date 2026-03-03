@@ -491,11 +491,11 @@ export default function GuestPage() {
         </button>
 
         {/* Back button — always right */}
-        <div className="w-10 flex justify-end">
+        <div className="w-12 flex justify-end">
           {!isHome && (
             <button
               onClick={goBackWithFade}
-              className="text-baroque-text text-xl p-1"
+              className="text-baroque-text text-4xl p-2 leading-none"
               aria-label={t('Go back', 'חזור')}
             >
               →
