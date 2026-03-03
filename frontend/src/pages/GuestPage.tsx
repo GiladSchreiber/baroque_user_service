@@ -149,7 +149,7 @@ function NoEventsScreen({ base, fadingOut = false, subtext }: NoEventsScreenProp
           </p>
         )}
         <a
-          href="https://instagram.com/baroquebarcafe"
+          href="https://www.instagram.com/baroque_bar_cafe/"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-baroque-text hover:text-gold transition-colors duration-150 mt-2"
@@ -595,7 +595,7 @@ export default function GuestPage() {
       {/* ── Footer ── */}
       <footer className="shrink-0 flex items-center justify-center gap-8 px-4 py-4 border-t border-baroque-border">
         <a
-          href="https://instagram.com/baroquebarcafe"
+          href="https://www.instagram.com/baroque_bar_cafe/"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-baroque-text hover:text-gold transition-colors duration-150"
@@ -608,10 +608,10 @@ export default function GuestPage() {
               style={{ filter: 'invert(85%) sepia(20%) saturate(300%) hue-rotate(5deg)' }}
             />
           </span>
-          <span className="text-[0.8rem] tracking-wide">baroquebarcafe</span>
+          <span className="text-[0.8rem] tracking-wide">baroque_bar_cafe</span>
         </a>
         <a
-          href="https://maps.google.com/?q=Ben+Sira+3+Jerusalem"
+          href="https://maps.app.goo.gl/FjLkesBsqfSLR1X99"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-baroque-text hover:text-gold transition-colors duration-150"
