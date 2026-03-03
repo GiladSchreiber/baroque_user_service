@@ -593,7 +593,7 @@ export default function GuestPage() {
       </div>
 
       {/* ── Footer ── */}
-      <footer className="shrink-0 flex items-center justify-center gap-8 px-4 py-4 border-t border-baroque-border">
+      <footer className="shrink-0 flex items-center justify-center gap-8 px-4 py-4 border-t border-baroque-border" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
         <a
           href="https://www.instagram.com/baroque_bar_cafe/"
           target="_blank"
