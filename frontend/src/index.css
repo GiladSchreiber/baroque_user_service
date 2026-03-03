@@ -19,6 +19,7 @@
   html, body {
     margin: 0;
     padding: 0;
+    overflow: hidden;
     background-color: var(--baroque-bg);
     color: var(--baroque-text);
     font-family: 'Assistant', system-ui, sans-serif;
