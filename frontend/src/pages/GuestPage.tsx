@@ -373,6 +373,7 @@ export default function GuestPage() {
       `${base}images/categories/coffee.jpg`,
       `${base}images/categories/alcohol.jpeg`,
       `${base}images/categories/pastries.jpg`,
+      `${base}images/menu/pastries/sweet.jpeg`,
       `${base}images/menu/coffee/cafe.JPG`,
       `${base}images/menu/coffee/orange.JPG`,
       `${base}images/menu/food/egg_salad.jpeg`,
@@ -614,7 +615,7 @@ export default function GuestPage() {
           white_wine: 'center 80%',
           liqueurs:   'center 60%',
         }} />}
-        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ pastries: `${base}images/menu/pastries/sweet.jpeg` }} categoryImagePositions={{ pastries: 'center 68%' }} />}
 
         {/* WiFi screen */}
         {view === 'wifi' && <WifiScreen wifi={wifi} loading={wifiLoading} error={wifiError} fadingOut={fadingOut} />}
