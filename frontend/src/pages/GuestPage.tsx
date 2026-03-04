@@ -105,9 +105,11 @@ interface MenuCategoryScreenProps {
   loading: boolean
   error: string | null
   fadingOut?: boolean
+  categoryImages?: Record<string, string>
+  categoryImagePositions?: Record<string, string>
 }
 
-function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false }: MenuCategoryScreenProps) {
+function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions }: MenuCategoryScreenProps) {
   const { t, lang } = useLang()
   const items   = allItems.filter(i => cats.includes(i.category))
   const grouped = groupByCategory(items, cats)
@@ -121,7 +123,7 @@ function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false 
         ? <MenuSkeleton />
         : error
           ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-          : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} />)
+          : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} />)
       }
     </div>
   )
@@ -365,6 +367,10 @@ export default function GuestPage() {
       `${base}images/categories/coffee.jpg`,
       `${base}images/categories/alcohol.jpeg`,
       `${base}images/categories/pastries.jpg`,
+      `${base}images/menu/alcohol/Beers.JPG`,
+      `${base}images/menu/alcohol/Amadeus.JPG`,
+      `${base}images/menu/alcohol/Wine.JPG`,
+      `${base}images/menu/alcohol/HardLiquers.JPG`,
     ]
 
     const preload = (srcs: string[]) => {
@@ -586,7 +592,18 @@ export default function GuestPage() {
         {/* Menu category screens */}
         {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
         {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
-        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{
+          beer:       `${base}images/menu/alcohol/Beers.JPG`,
+          cocktails:  `${base}images/menu/alcohol/Amadeus.JPG`,
+          red_wine:   `${base}images/menu/alcohol/Wine.JPG`,
+          white_wine: `${base}images/menu/alcohol/Wine.JPG`,
+          liqueurs:   `${base}images/menu/alcohol/HardLiquers.JPG`,
+        }} categoryImagePositions={{
+          cocktails:  'center 30%',
+          red_wine:   'center 80%',
+          white_wine: 'center 80%',
+          liqueurs:   'center 60%',
+        }} />}
         {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
 
         {/* WiFi screen */}
