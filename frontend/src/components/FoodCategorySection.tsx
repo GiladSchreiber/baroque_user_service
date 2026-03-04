@@ -8,6 +8,8 @@ interface Props {
   itemImage: string
 }
 
+const base = import.meta.env.BASE_URL
+
 export default function FoodCategorySection({ category, items, itemImage }: Props) {
   const { t, lang } = useLang()
   const meta = CATEGORY_META[category] ?? { en: category, he: category }
@@ -34,17 +36,18 @@ export default function FoodCategorySection({ category, items, itemImage }: Prop
                   className="w-full h-full object-cover object-bottom"
                 />
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 35%, var(--baroque-bg) 100%)' }} />
-                {item.is_vegetarian && (
-                  <span
-                    className={`absolute top-2 ${isRTL ? 'left-2' : 'right-2'} text-base leading-none drop-shadow`}
-                    title={t('Vegetarian', 'צמחוני')}
-                  >
-                    🌿
-                  </span>
-                )}
               </div>
-              <div className="flex justify-between items-baseline mt-2 gap-1">
-                <span className="font-medium text-baroque-text text-sm leading-snug">{name}</span>
+              <div className="flex justify-between items-center mt-2 gap-1">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="font-medium text-baroque-text text-sm leading-snug">{name}</span>
+                  {item.is_vegetarian && (
+                    <img
+                      src={`${base}images/menu/food/vegan.svg`}
+                      alt={t('Vegetarian', 'צמחוני')}
+                      className="w-4 h-4 shrink-0 brightness-75"
+                    />
+                  )}
+                </div>
                 <span className="text-gold font-medium text-sm whitespace-nowrap shrink-0">{formatPrice(item.price_display)}</span>
               </div>
               {(description || priceNote) && (
