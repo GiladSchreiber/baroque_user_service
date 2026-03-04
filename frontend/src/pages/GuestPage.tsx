@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLang } from '../context/LangContext'
 import CategorySection from '../components/CategorySection'
+import FoodCategorySection from '../components/FoodCategorySection'
 import type { MenuItem } from '../types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -107,9 +108,12 @@ interface MenuCategoryScreenProps {
   fadingOut?: boolean
   categoryImages?: Record<string, string>
   categoryImagePositions?: Record<string, string>
+  layout?: 'list' | 'grid'
+  categoryItemImages?: Record<string, string>
+  defaultItemImage?: string
 }
 
-function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions }: MenuCategoryScreenProps) {
+function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions, layout = 'list', categoryItemImages, defaultItemImage }: MenuCategoryScreenProps) {
   const { t, lang } = useLang()
   const items   = allItems.filter(i => cats.includes(i.category))
   const grouped = groupByCategory(items, cats)
@@ -123,7 +127,9 @@ function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false,
         ? <MenuSkeleton />
         : error
           ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-          : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} />)
+          : layout === 'grid'
+            ? grouped.map(([cat, catItems]) => <FoodCategorySection key={cat} category={cat} items={catItems} itemImage={categoryItemImages?.[cat] ?? defaultItemImage ?? ''} />)
+            : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} />)
       }
     </div>
   )
@@ -367,6 +373,8 @@ export default function GuestPage() {
       `${base}images/categories/coffee.jpg`,
       `${base}images/categories/alcohol.jpeg`,
       `${base}images/categories/pastries.jpg`,
+      `${base}images/menu/food/egg_salad.jpeg`,
+      `${base}images/menu/food/soup.jpg`,
       `${base}images/menu/alcohol/Beers.JPG`,
       `${base}images/menu/alcohol/Amadeus.JPG`,
       `${base}images/menu/alcohol/Wine.JPG`,
@@ -590,7 +598,7 @@ export default function GuestPage() {
         {view === 'concerts' && <ConcertsScreen concerts={concerts} base={base} fadingOut={fadingOut} />}
 
         {/* Menu category screens */}
-        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} layout="grid" categoryItemImages={{ soup: `${base}images/menu/food/soup.jpg` }} defaultItemImage={`${base}images/menu/food/egg_salad.jpeg`} />}
         {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
         {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{
           beer:       `${base}images/menu/alcohol/Beers.JPG`,
