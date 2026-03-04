@@ -11,9 +11,8 @@ interface Props {
 const base = import.meta.env.BASE_URL
 
 export default function FoodCategorySection({ category, items, itemImage }: Props) {
-  const { t, lang } = useLang()
+  const { t } = useLang()
   const meta = CATEGORY_META[category] ?? { en: category, he: category }
-  const isRTL = lang === 'he'
 
   return (
     <section className="mb-10">
