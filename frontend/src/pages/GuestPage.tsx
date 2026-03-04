@@ -373,6 +373,8 @@ export default function GuestPage() {
       `${base}images/categories/coffee.jpg`,
       `${base}images/categories/alcohol.jpeg`,
       `${base}images/categories/pastries.jpg`,
+      `${base}images/menu/coffee/cafe.JPG`,
+      `${base}images/menu/coffee/orange.JPG`,
       `${base}images/menu/food/egg_salad.jpeg`,
       `${base}images/menu/food/soup.jpg`,
       `${base}images/menu/alcohol/Beers.JPG`,
@@ -599,7 +601,7 @@ export default function GuestPage() {
 
         {/* Menu category screens */}
         {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} layout="grid" categoryItemImages={{ soup: `${base}images/menu/food/soup.jpg` }} defaultItemImage={`${base}images/menu/food/egg_salad.jpeg`} />}
-        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} />}
+        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ coffee: `${base}images/menu/coffee/cafe.JPG`, soft_drinks: `${base}images/menu/coffee/orange.JPG` }} categoryImagePositions={{ coffee: 'center 100%', soft_drinks: 'center 80%' }} />}
         {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{
           beer:       `${base}images/menu/alcohol/Beers.JPG`,
           cocktails:  `${base}images/menu/alcohol/Amadeus.JPG`,

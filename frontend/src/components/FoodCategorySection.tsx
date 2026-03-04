@@ -24,6 +24,7 @@ export default function FoodCategorySection({ category, items, itemImage }: Prop
         {items.map(item => {
           const name = t(item.name_en, item.name_he)
           const description = t(item.description_en, item.description_he)
+          const priceNote = t(item.price_note_en ?? '', item.price_note_he ?? '') || null
           return (
             <div key={item.name_en}>
               <div className="relative aspect-square overflow-hidden">
@@ -46,8 +47,11 @@ export default function FoodCategorySection({ category, items, itemImage }: Prop
                 <span className="font-medium text-baroque-text text-sm leading-snug">{name}</span>
                 <span className="text-gold font-medium text-sm whitespace-nowrap shrink-0">{formatPrice(item.price_display)}</span>
               </div>
-              {description && (
-                <p className="font-serif text-baroque-muted text-xs tracking-wide mt-1 leading-relaxed">{description}</p>
+              {(description || priceNote) && (
+                <div className="flex justify-between items-baseline gap-1 mt-1">
+                  <p className="font-serif text-baroque-muted text-xs tracking-wide leading-relaxed">{description}</p>
+                  {priceNote && <span className="font-serif text-baroque-muted text-xs tracking-wide whitespace-nowrap shrink-0">{priceNote}</span>}
+                </div>
               )}
             </div>
           )
