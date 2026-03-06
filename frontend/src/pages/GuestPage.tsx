@@ -469,6 +469,10 @@ export default function GuestPage() {
   const [wifiLoading, setWifiLoading] = useState(true)
   const [wifiError, setWifiError]     = useState<string | null>(null)
 
+  // ── First home visit tracking ────────────────────────────────────────────────
+  const firstHomeLoad = useRef(true)
+  useEffect(() => { if (view !== 'home') firstHomeLoad.current = false }, [view])
+
   // ── Cover slideshow ──────────────────────────────────────────────────────────
   const coverImages = [
     `${base}images/cover_app1.jpg`,
@@ -518,12 +522,12 @@ export default function GuestPage() {
   return (
     <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
       {/* ── Header (hidden on home) ── */}
-      {!isHome && <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '62px' }}>
+      {!isHome && <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '72px' }}>
         {/* Lang toggle — always left */}
-        <div className="w-10">
+        <div className="w-12">
           <button
             onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-            className="w-8 h-8 rounded-full border border-gold text-baroque-text text-xs tracking-wider flex items-center justify-center"
+            className="w-11 h-11 rounded-full border border-gold text-baroque-text text-sm tracking-wider flex items-center justify-center"
           >
             {lang === 'en' ? 'He' : 'En'}
           </button>
@@ -580,7 +584,7 @@ export default function GuestPage() {
             <div className="absolute top-4 left-4 z-10">
               <button
                 onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-                className="w-8 h-8 rounded-full border border-white/50 text-white text-xs tracking-wider flex items-center justify-center bg-black/30"
+                className="w-11 h-11 rounded-full border border-white/50 text-white text-sm tracking-wider flex items-center justify-center bg-black/30"
               >
                 {lang === 'en' ? 'He' : 'En'}
               </button>
@@ -599,7 +603,7 @@ export default function GuestPage() {
                     { text: '·',   delay: 1.35 },
                     { text: 'Art',  delay: 1.6 },
                   ].map(({ text, delay }, i) => (
-                    <span key={i} style={{ animation: `screenFadeIn 0.7s ease-out ${delay}s both` }}>
+                    <span key={i} style={firstHomeLoad.current ? { animation: `screenFadeIn 0.7s ease-out ${delay}s both` } : undefined}>
                       {text}
                     </span>
                   ))}
@@ -618,7 +622,7 @@ export default function GuestPage() {
                     key={v}
                     onClick={() => navigateWithAnim(v)}
                     className="border border-white/40 text-white font-serif tracking-widest uppercase text-sm py-3 bg-black/20 backdrop-blur-sm active:bg-white/10 transition-colors"
-                    style={{ animation: `screenFadeIn 0.7s ease-out ${2.1 + i * 0.35}s both` }}
+                    style={firstHomeLoad.current ? { animation: `screenFadeIn 0.7s ease-out ${2.1 + i * 0.35}s both` } : undefined}
                   >
                     {t(en, he)}
                   </button>
