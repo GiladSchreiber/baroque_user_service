@@ -365,6 +365,10 @@ export default function GuestPage() {
   useEffect(() => {
     const staticSrcs = [
       `${base}logo.png`,
+      `${base}images/cover_app1.jpg`,
+      `${base}images/cover_app2.jpg`,
+      `${base}images/cover_app3.jpg`,
+      `${base}images/cover_app4.jpg`,
       `${base}images/categories/concerts.jpg`,
       `${base}images/categories/menu.jpg`,
       `${base}images/categories/wifi.jpeg`,
@@ -443,6 +447,19 @@ export default function GuestPage() {
     return () => clearTimeout(timer)
   }, [leaving, pendingNav])
 
+  // ── Hardware / browser back button ───────────────────────────────────────────
+  useEffect(() => { window.history.replaceState(null, '') }, [])
+  useEffect(() => {
+    if (history.length > 1) window.history.pushState(null, '')
+  }, [history.length])
+  const goBackFnRef = useRef(goBackWithFade)
+  useEffect(() => { goBackFnRef.current = goBackWithFade })
+  useEffect(() => {
+    const handler = () => goBackFnRef.current()
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+
   // ── Data ────────────────────────────────────────────────────────────────────
   const [concerts, setConcerts]       = useState<ConcertItem[]>([])
   const [allItems, setAllItems]       = useState<MenuItem[]>([])
@@ -451,6 +468,19 @@ export default function GuestPage() {
   const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
   const [wifiError, setWifiError]     = useState<string | null>(null)
+
+  // ── Cover slideshow ──────────────────────────────────────────────────────────
+  const coverImages = [
+    `${base}images/cover_app1.jpg`,
+    `${base}images/cover_app2.jpg`,
+    `${base}images/cover_app3.jpg`,
+    `${base}images/cover_app4.jpg`,
+  ]
+  const [coverIndex, setCoverIndex] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setCoverIndex(i => (i + 1) % coverImages.length), 2000)
+    return () => clearInterval(interval)
+  }, [])
 
 
   useEffect(() => {
@@ -487,8 +517,8 @@ export default function GuestPage() {
 
   return (
     <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
-      {/* ── Header ── */}
-      <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '62px' }}>
+      {/* ── Header (hidden on home) ── */}
+      {!isHome && <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '62px' }}>
         {/* Lang toggle — always left */}
         <div className="w-10">
           <button
@@ -524,42 +554,77 @@ export default function GuestPage() {
             </button>
           )}
         </div>
-      </header>
+      </header>}
 
       {/* ── Screen content ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Home grid */}
+        {/* Home screen */}
         {isHome && (
-          <div className="grid grid-cols-2 grid-rows-2 flex-1">
-            <GridTile
-              image={`${base}images/categories/concerts.jpg`}
-              labelEn="Concerts"
-              labelHe="לוח הופעות"
-              onClick={() => navigateWithAnim('concerts')}
-              animDelay={0}   animOut={leaving}
-            />
-            <GridTile
-              image={`${base}images/categories/menu.jpg`}
-              labelEn="Menu"
-              labelHe="תפריט"
-              onClick={() => navigateWithAnim('menu')}
-              animDelay={100} animOut={leaving}
-            />
-            <GridTile
-              image={`${base}images/categories/wifi.jpeg`}
-              labelEn="WiFi"
-              labelHe="WiFi"
-              onClick={() => navigateWithAnim('wifi')}
-              animDelay={200} animOut={leaving}
-            />
-            <GridTile
-              image={`${base}images/categories/yad2.jpeg`}
-              labelEn="Second Hand"
-              labelHe="יד שנייה"
-              onClick={() => navigateWithAnim('second-hand')}
-              animDelay={300} animOut={leaving}
-            />
+          <div className="relative flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ animation: leaving ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}>
+            {/* Rotating background images */}
+            {coverImages.map((src, i) => (
+              <img
+                key={src}
+                src={src}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
+                style={{ opacity: i === coverIndex ? 1 : 0 }}
+              />
+            ))}
+            {/* Dark overlay */}
+            <div className="absolute inset-0 bg-black/75" />
+
+            {/* Lang toggle */}
+            <div className="absolute top-4 left-4 z-10">
+              <button
+                onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
+                className="w-8 h-8 rounded-full border border-white/50 text-white text-xs tracking-wider flex items-center justify-center bg-black/30"
+              >
+                {lang === 'en' ? 'He' : 'En'}
+              </button>
+            </div>
+
+            {/* Main content */}
+            <div className="relative z-10 flex flex-col items-center gap-10 px-8 w-full">
+              {/* Logo + tagline */}
+              <div className="flex flex-col items-center gap-3">
+                <img src={`${base}logo.png`} alt="Baroque" className="h-16 w-auto" style={{ filter: 'invert(1)' }} />
+                <p className="flex items-center gap-2 text-white/60 text-xs tracking-[0.35em] uppercase">
+                  {[
+                    { text: 'Bar',  delay: 0.4 },
+                    { text: '·',   delay: 0.75 },
+                    { text: 'Cafe', delay: 1.0 },
+                    { text: '·',   delay: 1.35 },
+                    { text: 'Art',  delay: 1.6 },
+                  ].map(({ text, delay }, i) => (
+                    <span key={i} style={{ animation: `screenFadeIn 0.7s ease-out ${delay}s both` }}>
+                      {text}
+                    </span>
+                  ))}
+                </p>
+              </div>
+
+              {/* Nav buttons */}
+              <div className="flex flex-col gap-3 w-48">
+                {([
+                  { v: 'wifi'        as View, en: 'WiFi',    he: 'WiFi'   },
+                  { v: 'menu'        as View, en: 'Menu',    he: 'תפריט'  },
+                  { v: 'concerts'    as View, en: 'Events',  he: 'הופעות' },
+                  { v: 'second-hand' as View, en: 'Gallery', he: 'גלריה'  },
+                ] as const).map(({ v, en, he }, i) => (
+                  <button
+                    key={v}
+                    onClick={() => navigateWithAnim(v)}
+                    className="border border-white/40 text-white font-serif tracking-widest uppercase text-sm py-3 bg-black/20 backdrop-blur-sm active:bg-white/10 transition-colors"
+                    style={{ animation: `screenFadeIn 0.7s ease-out ${2.1 + i * 0.35}s both` }}
+                  >
+                    {t(en, he)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

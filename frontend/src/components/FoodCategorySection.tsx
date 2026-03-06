@@ -46,6 +46,9 @@ export default function FoodCategorySection({ category, items, itemImage }: Prop
                       className="w-4 h-4 shrink-0 brightness-75"
                     />
                   )}
+                  {item.is_seasonal && (
+                    <span className="text-amber-600 text-xs font-medium tracking-wide shrink-0">{t('seasonal', 'לפי העונה')}</span>
+                  )}
                 </div>
                 <span className="text-gold font-medium text-sm whitespace-nowrap shrink-0">{formatPrice(item.price_display)}</span>
               </div>
