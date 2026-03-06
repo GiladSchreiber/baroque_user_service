@@ -605,21 +605,19 @@ export default function GuestPage() {
   const firstHomeLoad = useRef(true)
   useEffect(() => { if (view !== 'home') firstHomeLoad.current = false }, [view])
 
-  // ── Cover slideshow (starts after button animations finish ~4s) ───────────────
+  // ── Cover slideshow (cover_app3 visible from start, cycling begins after animations) ──
   const coverImages = [
     `${base}images/cover_app1.jpg`,
     `${base}images/cover_app2.jpg`,
     `${base}images/cover_app3.jpg`,
     `${base}images/cover_app4.jpg`,
   ]
-  const [coverIndex, setCoverIndex]       = useState(0)
-  const [slideshowStarted, setSlideshowStarted] = useState(false)
+  const [coverIndex, setCoverIndex] = useState(2)
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>
     const timeout = setTimeout(() => {
-      setSlideshowStarted(true)
       interval = setInterval(() => setCoverIndex(i => (i + 1) % coverImages.length), 4000)
-    }, 4000)
+    }, 3000)
     return () => { clearTimeout(timeout); clearInterval(interval) }
   }, [])
 
@@ -665,7 +663,7 @@ export default function GuestPage() {
   return (
     <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
       {/* ── Lang toggle — fixed, always visible, never fades ── */}
-      <div className="fixed top-4 left-4 z-50">
+      <div className="fixed top-[21px] left-4 z-50">
         <button
           onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
           className="w-11 h-11 rounded-full border border-gold text-baroque-text text-sm tracking-wider flex items-center justify-center bg-baroque-bg/80"
@@ -675,7 +673,7 @@ export default function GuestPage() {
       </div>
 
       {/* ── Header (hidden on home) ── */}
-      {!isHome && <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '72px' }}>
+      {!isHome && <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '86px' }}>
         {/* Spacer — same width as toggle to keep logo centered */}
         <div className="w-12" />
 
@@ -712,11 +710,8 @@ export default function GuestPage() {
         {/* Home screen */}
         {isHome && (
           <div className="relative flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ animation: leaving ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}>
-            {/* Rotating background images + overlay — fade in as one unit */}
-            <div
-              className="absolute inset-0 transition-opacity duration-1000"
-              style={{ opacity: slideshowStarted ? 1 : 0 }}
-            >
+            {/* Rotating background images + overlay */}
+            <div className="absolute inset-0">
               {coverImages.map((src, i) => (
                 <img
                   key={src}
@@ -751,18 +746,20 @@ export default function GuestPage() {
               </div>
 
               {/* Nav buttons */}
-              <div className="flex flex-col gap-3 w-48">
+              <div
+                className="flex flex-col gap-3 w-48"
+                style={firstHomeLoad.current ? { animation: 'screenFadeIn 0.4s ease-out 2.3s both' } : undefined}
+              >
                 {([
                   { v: 'menu'        as View, en: 'Menu',    he: 'תפריט'  },
                   { v: 'concerts'    as View, en: 'Events',  he: 'הופעות' },
                   { v: 'gallery'     as View, en: 'Gallery', he: 'גלריה'  },
                   { v: 'wifi'        as View, en: 'WiFi',    he: 'WiFi'   },
-                ] as const).map(({ v, en, he }, i) => (
+                ] as const).map(({ v, en, he }) => (
                   <button
                     key={v}
                     onClick={() => navigateWithAnim(v)}
                     className="border border-white/40 text-white font-serif tracking-widest uppercase text-sm py-3 bg-black/20 backdrop-blur-sm active:bg-white/10 transition-colors"
-                    style={firstHomeLoad.current ? { animation: `screenFadeIn 0.7s ease-out ${2.1 + i * 0.35}s both` } : undefined}
                   >
                     {t(en, he)}
                   </button>
