@@ -649,13 +649,30 @@ export default function GuestPage() {
 
   if (!imagesReady) {
     return (
-      <div className="h-screen flex items-center justify-center bg-baroque-bg">
-        <img
-          src={`${base}logo.png`}
-          alt="Baroque"
-          className="h-12 w-auto animate-pulse"
-          style={{ filter: 'invert(1)' }}
-        />
+      <div className="h-screen flex flex-col bg-baroque-bg overflow-hidden">
+        {/* Content — mirrors landing page layout exactly */}
+        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center gap-10 px-8 w-full">
+            {/* Logo + tagline grouped together — same as landing page */}
+            <div className="flex flex-col items-center gap-3">
+              <img
+                src={`${base}logo.png`}
+                alt="Baroque"
+                className="h-16 w-auto animate-pulse"
+                style={{ filter: 'invert(1)' }}
+              />
+              <p className="text-xs tracking-[0.35em]" style={{ opacity: 0 }}>Bar · Cafe · Art</p>
+            </div>
+            {/* Buttons placeholder */}
+            <div className="flex flex-col gap-3 w-48" style={{ opacity: 0, pointerEvents: 'none' }}>
+              {['a', 'b', 'c', 'd'].map(k => <div key={k} className="py-3 text-sm">x</div>)}
+            </div>
+          </div>
+        </div>
+        {/* Footer spacer — same height as real footer so logo lands in the right spot */}
+        <footer className="shrink-0 flex items-center justify-center px-4 pt-4 pb-safe border-t border-baroque-border opacity-0 pointer-events-none">
+          <span className="text-[0.8rem]">placeholder</span>
+        </footer>
       </div>
     )
   }
