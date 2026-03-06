@@ -17,7 +17,7 @@ export default function CategorySection({ category, items, imageSrc, imagePositi
   return (
     <section className="mb-10">
       {imageSrc ? (
-        <div className="relative overflow-hidden mb-4" style={{ height: '200px' }}>
+        <div className="relative overflow-hidden mb-4 -mx-4" style={{ height: '200px' }}>
           <img
             src={imageSrc}
             alt=""

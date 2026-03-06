@@ -16,7 +16,7 @@ type View =
   | 'menu-alcohol'
   | 'menu-pastries'
   | 'wifi'
-  | 'second-hand'
+  | 'gallery'
 
 interface ConcertItem {
   file: string
@@ -90,9 +90,9 @@ function GridTile({ image, labelEn, labelHe, onClick, animDelay = 0, animVariant
       onClick={onClick}
     >
       <img src={image} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-300 group-hover:brightness-110" />
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 35%, var(--baroque-bg) 100%)' }} />
-      <div className="absolute top-[12%] left-0 right-0 flex justify-center px-3">
-        <span className="bg-baroque-bg text-baroque-text font-serif text-lg tracking-widest uppercase px-4 py-1.5 text-center">
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.6) 100%)' }} />
+      <div className="absolute top-0 left-0 right-0 flex justify-center pt-4">
+        <span className="border border-white/40 text-white font-serif text-sm tracking-widest uppercase px-5 py-2.5 bg-black/20 backdrop-blur-sm text-center w-40">
           {t(labelEn, labelHe)}
         </span>
       </div>
@@ -120,7 +120,7 @@ function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false,
   return (
     <div
       dir={lang === 'he' ? 'rtl' : 'ltr'}
-      className="flex-1 overflow-y-auto px-4 py-6"
+      className="flex-1 overflow-y-auto px-4 pb-6"
       style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
     >
       {loading
@@ -311,26 +311,26 @@ function WifiScreen({ wifi, loading, error, fadingOut = false }: WifiScreenProps
   const { t } = useLang()
   return (
     <div
-      className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-6 py-8"
+      className="flex-1 bg-baroque-surface flex flex-col items-center justify-center px-6 py-8"
       style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
     >
       {loading && (
-        <div className="card animate-pulse space-y-5 w-full">
-          <div className="h-48 bg-baroque-border rounded mx-auto w-48" />
-          <div className="h-4 bg-baroque-border rounded w-24 mx-auto" />
-          <div className="h-6 bg-baroque-border rounded w-48 mx-auto" />
-          <div className="h-px bg-baroque-border" />
-          <div className="h-4 bg-baroque-border rounded w-20 mx-auto" />
-          <div className="h-6 bg-baroque-border rounded w-40 mx-auto" />
+        <div className="animate-pulse space-y-5 w-full flex flex-col items-center">
+          <div className="h-48 bg-baroque-border rounded w-48" />
+          <div className="h-4 bg-baroque-border rounded w-24" />
+          <div className="h-6 bg-baroque-border rounded w-48" />
+          <div className="h-px bg-baroque-border w-full" />
+          <div className="h-4 bg-baroque-border rounded w-20" />
+          <div className="h-6 bg-baroque-border rounded w-40" />
         </div>
       )}
       {error && !loading && (
-        <div className="card border-red-900 text-red-400 text-sm text-center">
+        <p className="text-red-400 text-sm text-center">
           {t('Could not load WiFi info', 'לא ניתן לטעון מידע WiFi')}
-        </div>
+        </p>
       )}
       {wifi && !loading && (
-        <div className="card w-full flex flex-col items-center gap-6 py-8">
+        <div className="flex flex-col items-center gap-6">
           <QRCodeSVG
             value={`WIFI:T:WPA;S:${wifi.ssid};P:${wifi.password};;`}
             size={220}
@@ -351,6 +351,137 @@ function WifiScreen({ wifi, loading, error, fadingOut = false }: WifiScreenProps
         </div>
       )}
     </div>
+  )
+}
+
+// ── Gallery screen ─────────────────────────────────────────────────────────────
+
+interface GalleryScreenProps {
+  images: string[]
+  base: string
+  fadingOut?: boolean
+}
+
+function GalleryScreen({ images, base, fadingOut = false }: GalleryScreenProps) {
+  const { t } = useLang()
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [prevLbIdx, setPrevLbIdx]     = useState<number | null>(null)
+  const [lbDir, setLbDir]             = useState<'left' | 'right'>('left')
+  const lbAnimating                   = useRef(false)
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
+
+  const changeLbIdx = (newIdx: number, direction: 'left' | 'right') => {
+    if (lightboxIdx === null || newIdx === lightboxIdx || lbAnimating.current) return
+    lbAnimating.current = true
+    setLbDir(direction)
+    setPrevLbIdx(lightboxIdx)
+    setLightboxIdx(newIdx)
+    setTimeout(() => { setPrevLbIdx(null); lbAnimating.current = false }, 300)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => setTouchStartX(e.touches[0].clientX)
+  const onTouchEnd   = (e: React.TouchEvent) => {
+    if (touchStartX === null || lightboxIdx === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX
+    if (Math.abs(dx) > 50) {
+      changeLbIdx(
+        dx < 0 ? (lightboxIdx + 1) % images.length : (lightboxIdx - 1 + images.length) % images.length,
+        dx < 0 ? 'left' : 'right'
+      )
+    }
+    setTouchStartX(null)
+  }
+
+  const slideInAnim  = lbDir === 'left' ? 'slideFromRight' : 'slideFromLeft'
+  const slideOutAnim = lbDir === 'left' ? 'slideOutLeft'   : 'slideOutRight'
+
+  return (
+    <>
+      <style>{`
+        @keyframes gallerySlideFromRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes gallerySlideFromLeft  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        @keyframes gallerySlideOutLeft   { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+        @keyframes gallerySlideOutRight  { from { transform: translateX(0); } to { transform: translateX(100%); } }
+      `}</style>
+
+      {/* Grid */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ animation: fadingOut ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}
+      >
+        <div className="columns-2 gap-1 px-1 pb-6">
+          {images.map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setLightboxIdx(i)}
+              className="w-full mb-1 block focus:outline-none"
+            >
+              <img
+                src={`${base}${src}`}
+                alt=""
+                aria-hidden
+                loading="lazy"
+                className="w-full block"
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <div
+          className="fixed inset-0 z-[60] bg-baroque-bg flex flex-col"
+          style={{ animation: 'screenFadeIn 0.3s ease-out both' }}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* Counter + close */}
+          <div className="shrink-0 flex items-center justify-between px-4 py-3">
+            <span className="text-baroque-muted text-sm tabular-nums">{lightboxIdx + 1} / {images.length}</span>
+            <button
+              onClick={() => setLightboxIdx(null)}
+              className="w-11 h-11 flex items-center justify-center text-baroque-text"
+              aria-label={t('Close', 'סגור')}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Sliding image area */}
+          <div className="flex-1 relative overflow-hidden">
+            {prevLbIdx !== null && (
+              <div
+                className="absolute inset-0"
+                style={{ animation: `gallery${slideOutAnim.charAt(0).toUpperCase() + slideOutAnim.slice(1)} 0.3s ease-out forwards` }}
+              >
+                <img src={`${base}${images[prevLbIdx]}`} alt="" className="w-full h-full object-contain" />
+              </div>
+            )}
+            <div
+              key={lightboxIdx}
+              className="absolute inset-0"
+              style={prevLbIdx !== null ? { animation: `gallery${slideInAnim.charAt(0).toUpperCase() + slideInAnim.slice(1)} 0.3s ease-out` } : {}}
+            >
+              <img src={`${base}${images[lightboxIdx]}`} alt="" className="w-full h-full object-contain" />
+            </div>
+          </div>
+
+          {/* Dots */}
+          <div className="flex justify-center gap-3 py-3 shrink-0">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => changeLbIdx(i, i > (lightboxIdx ?? 0) ? 'left' : 'right')}
+                className={`w-2 h-2 rounded-full transition-colors duration-150 ${i === lightboxIdx ? 'bg-gold' : 'bg-baroque-border'}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -418,7 +549,7 @@ export default function GuestPage() {
   const goHome  = () => setHistory(['home'])
 
   const [fadingOut, setFadingOut] = useState(false)
-  const FADING_VIEWS: View[] = ['concerts', 'wifi', 'menu-food', 'menu-coffee', 'menu-alcohol', 'menu-pastries', 'second-hand']
+  const FADING_VIEWS: View[] = ['concerts', 'wifi', 'menu-food', 'menu-coffee', 'menu-alcohol', 'menu-pastries', 'gallery']
   const goBackWithFade = () => {
     if (fadingOut) return
     if (FADING_VIEWS.includes(view)) {
@@ -468,24 +599,29 @@ export default function GuestPage() {
   const [wifi, setWifi]               = useState<{ ssid: string; password: string } | null>(null)
   const [wifiLoading, setWifiLoading] = useState(true)
   const [wifiError, setWifiError]     = useState<string | null>(null)
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
 
   // ── First home visit tracking ────────────────────────────────────────────────
   const firstHomeLoad = useRef(true)
   useEffect(() => { if (view !== 'home') firstHomeLoad.current = false }, [view])
 
-  // ── Cover slideshow ──────────────────────────────────────────────────────────
+  // ── Cover slideshow (starts after button animations finish ~4s) ───────────────
   const coverImages = [
     `${base}images/cover_app1.jpg`,
     `${base}images/cover_app2.jpg`,
     `${base}images/cover_app3.jpg`,
     `${base}images/cover_app4.jpg`,
   ]
-  const [coverIndex, setCoverIndex] = useState(0)
+  const [coverIndex, setCoverIndex]       = useState(0)
+  const [slideshowStarted, setSlideshowStarted] = useState(false)
   useEffect(() => {
-    const interval = setInterval(() => setCoverIndex(i => (i + 1) % coverImages.length), 2000)
-    return () => clearInterval(interval)
+    let interval: ReturnType<typeof setInterval>
+    const timeout = setTimeout(() => {
+      setSlideshowStarted(true)
+      interval = setInterval(() => setCoverIndex(i => (i + 1) % coverImages.length), 4000)
+    }, 4000)
+    return () => { clearTimeout(timeout); clearInterval(interval) }
   }, [])
-
 
   useEffect(() => {
     fetch(`${base}data/wifi.json`)
@@ -493,6 +629,13 @@ export default function GuestPage() {
       .then(data => setWifi(data))
       .catch((e: Error) => setWifiError(e.message))
       .finally(() => setWifiLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch(`${base}data/gallery.json`)
+      .then(r => r.json())
+      .then((data: string[]) => setGalleryImages(data))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -521,17 +664,20 @@ export default function GuestPage() {
 
   return (
     <div className="h-screen flex flex-col bg-baroque-bg text-baroque-text overflow-hidden">
+      {/* ── Lang toggle — fixed, always visible, never fades ── */}
+      <div className="fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
+          className="w-11 h-11 rounded-full border border-gold text-baroque-text text-sm tracking-wider flex items-center justify-center bg-baroque-bg/80"
+        >
+          {lang === 'en' ? 'He' : 'En'}
+        </button>
+      </div>
+
       {/* ── Header (hidden on home) ── */}
       {!isHome && <header className="shrink-0 flex items-center justify-between px-4 border-b border-baroque-border bg-baroque-bg" style={{ height: '72px' }}>
-        {/* Lang toggle — always left */}
-        <div className="w-12">
-          <button
-            onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-            className="w-11 h-11 rounded-full border border-gold text-baroque-text text-sm tracking-wider flex items-center justify-center"
-          >
-            {lang === 'en' ? 'He' : 'En'}
-          </button>
-        </div>
+        {/* Spacer — same width as toggle to keep logo centered */}
+        <div className="w-12" />
 
         {/* Logo */}
         <button onClick={goHome} className="flex items-center focus:outline-none">
@@ -561,33 +707,27 @@ export default function GuestPage() {
       </header>}
 
       {/* ── Screen content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden bg-baroque-surface">
 
         {/* Home screen */}
         {isHome && (
           <div className="relative flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ animation: leaving ? 'screenFadeOut 0.3s ease-in both' : 'screenFadeIn 0.4s ease-out both' }}>
-            {/* Rotating background images */}
-            {coverImages.map((src, i) => (
-              <img
-                key={src}
-                src={src}
-                alt=""
-                aria-hidden
-                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-                style={{ opacity: i === coverIndex ? 1 : 0 }}
-              />
-            ))}
-            {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black/75" />
-
-            {/* Lang toggle */}
-            <div className="absolute top-4 left-4 z-10">
-              <button
-                onClick={() => setLang(lang === 'en' ? 'he' : 'en')}
-                className="w-11 h-11 rounded-full border border-white/50 text-white text-sm tracking-wider flex items-center justify-center bg-black/30"
-              >
-                {lang === 'en' ? 'He' : 'En'}
-              </button>
+            {/* Rotating background images + overlay — fade in as one unit */}
+            <div
+              className="absolute inset-0 transition-opacity duration-1000"
+              style={{ opacity: slideshowStarted ? 1 : 0 }}
+            >
+              {coverImages.map((src, i) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
+                  style={{ opacity: i === coverIndex ? 1 : 0 }}
+                />
+              ))}
+              <div className="absolute inset-0 bg-black/75" />
             </div>
 
             {/* Main content */}
@@ -613,10 +753,10 @@ export default function GuestPage() {
               {/* Nav buttons */}
               <div className="flex flex-col gap-3 w-48">
                 {([
-                  { v: 'wifi'        as View, en: 'WiFi',    he: 'WiFi'   },
                   { v: 'menu'        as View, en: 'Menu',    he: 'תפריט'  },
                   { v: 'concerts'    as View, en: 'Events',  he: 'הופעות' },
-                  { v: 'second-hand' as View, en: 'Gallery', he: 'גלריה'  },
+                  { v: 'gallery'     as View, en: 'Gallery', he: 'גלריה'  },
+                  { v: 'wifi'        as View, en: 'WiFi',    he: 'WiFi'   },
                 ] as const).map(({ v, en, he }, i) => (
                   <button
                     key={v}
@@ -637,29 +777,25 @@ export default function GuestPage() {
           <div className="grid grid-cols-2 grid-rows-2 flex-1">
             <GridTile
               image={`${base}images/categories/food.jpg`}
-              labelEn="Food"
-              labelHe="מטבח"
+              labelEn="Food" labelHe="מטבח"
               onClick={() => navigateWithAnim('menu-food')}
               animVariant="flip" animDelay={0}   animOut={leaving}
             />
             <GridTile
               image={`${base}images/categories/coffee.jpg`}
-              labelEn="Coffee"
-              labelHe="קפה"
+              labelEn="Coffee" labelHe="קפה"
               onClick={() => navigateWithAnim('menu-coffee')}
               animVariant="flip" animDelay={100} animOut={leaving}
             />
             <GridTile
               image={`${base}images/categories/alcohol.jpeg`}
-              labelEn="Alcohol"
-              labelHe="אלכוהול"
+              labelEn="Alcohol" labelHe="אלכוהול"
               onClick={() => navigateWithAnim('menu-alcohol')}
               animVariant="flip" animDelay={200} animOut={leaving}
             />
             <GridTile
               image={`${base}images/categories/pastries.jpg`}
-              labelEn="Pastries"
-              labelHe="מאפים"
+              labelEn="Pastries" labelHe="מאפים"
               onClick={() => navigateWithAnim('menu-pastries')}
               animVariant="flip" animDelay={300} animOut={leaving}
             />
@@ -670,27 +806,16 @@ export default function GuestPage() {
         {view === 'concerts' && <ConcertsScreen concerts={concerts} base={base} fadingOut={fadingOut} />}
 
         {/* Menu category screens */}
-        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} layout="grid" categoryItemImages={{ soup: `${base}images/menu/food/soup.jpg` }} defaultItemImage={`${base}images/menu/food/egg_salad.jpeg`} />}
+        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ soup: `${base}images/menu/food/soup.jpg`, salads: `${base}images/menu/food/egg_salad.jpeg`, bread: `${base}images/menu/food/egg_salad.jpeg`, sandwiches: `${base}images/menu/food/egg_salad.jpeg`, toasts: `${base}images/menu/food/egg_salad.jpeg` }} />}
         {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ coffee: `${base}images/menu/coffee/cafe.JPG`, soft_drinks: `${base}images/menu/coffee/orange.JPG` }} categoryImagePositions={{ coffee: 'center 100%', soft_drinks: 'center 80%' }} />}
-        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{
-          beer:       `${base}images/menu/alcohol/Beers.JPG`,
-          cocktails:  `${base}images/menu/alcohol/Amadeus.JPG`,
-          red_wine:   `${base}images/menu/alcohol/Wine.JPG`,
-          white_wine: `${base}images/menu/alcohol/Wine.JPG`,
-          liqueurs:   `${base}images/menu/alcohol/HardLiquers.JPG`,
-        }} categoryImagePositions={{
-          cocktails:  'center 30%',
-          red_wine:   'center 80%',
-          white_wine: 'center 80%',
-          liqueurs:   'center 60%',
-        }} />}
+        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ beer: `${base}images/menu/alcohol/Beers.JPG`, cocktails: `${base}images/menu/alcohol/Amadeus.JPG`, red_wine: `${base}images/menu/alcohol/Wine.JPG`, white_wine: `${base}images/menu/alcohol/Wine.JPG`, liqueurs: `${base}images/menu/alcohol/HardLiquers.JPG` }} categoryImagePositions={{ cocktails: 'center 30%', red_wine: 'center 80%', white_wine: 'center 80%', liqueurs: 'center 60%' }} />}
         {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ pastries: `${base}images/menu/pastries/sweet.jpeg` }} categoryImagePositions={{ pastries: 'center 68%' }} />}
 
         {/* WiFi screen */}
         {view === 'wifi' && <WifiScreen wifi={wifi} loading={wifiLoading} error={wifiError} fadingOut={fadingOut} />}
 
-        {/* Second Hand screen */}
-        {view === 'second-hand' && <NoEventsScreen base={base} fadingOut={fadingOut} subtext={{ en: 'Have items to sell or share?', he: 'יש לך פריטים למכור או לשתף?' }} />}
+        {/* Gallery screen */}
+        {view === 'gallery' && <GalleryScreen images={galleryImages} base={base} fadingOut={fadingOut} />}
 
       </div>
 
