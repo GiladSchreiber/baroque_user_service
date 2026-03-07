@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useLang } from '../context/LangContext'
-import CategorySection from '../components/CategorySection'
+import CategorySection, { type DishImage } from '../components/CategorySection'
 import FoodCategorySection from '../components/FoodCategorySection'
 import type { MenuItem } from '../types'
 
@@ -108,12 +108,13 @@ interface MenuCategoryScreenProps {
   fadingOut?: boolean
   categoryImages?: Record<string, string>
   categoryImagePositions?: Record<string, string>
+  allDishImages?: DishImage[]
   layout?: 'list' | 'grid'
   categoryItemImages?: Record<string, string>
   defaultItemImage?: string
 }
 
-function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions, layout = 'list', categoryItemImages, defaultItemImage }: MenuCategoryScreenProps) {
+function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions, allDishImages, layout = 'list', categoryItemImages, defaultItemImage }: MenuCategoryScreenProps) {
   const { t, lang } = useLang()
   const items   = allItems.filter(i => cats.includes(i.category))
   const grouped = groupByCategory(items, cats)
@@ -127,9 +128,27 @@ function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false,
         ? <MenuSkeleton />
         : error
           ? <div className="card border-red-900 text-red-400 text-sm">{t('Could not load menu', 'לא ניתן לטעון תפריט')}</div>
-          : layout === 'grid'
-            ? grouped.map(([cat, catItems]) => <FoodCategorySection key={cat} category={cat} items={catItems} itemImage={categoryItemImages?.[cat] ?? defaultItemImage ?? ''} />)
-            : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} />)
+          : <>
+              {layout === 'grid'
+                ? grouped.map(([cat, catItems]) => <FoodCategorySection key={cat} category={cat} items={catItems} itemImage={categoryItemImages?.[cat] ?? defaultItemImage ?? ''} />)
+                : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} />)
+              }
+              {allDishImages && allDishImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 -mx-4">
+                  {allDishImages.map((img, i) => (
+                    <div key={i} className="relative aspect-square overflow-hidden">
+                      <img src={img.src} alt={img.labelEn} className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)' }} />
+                      <div className="absolute top-0 left-0 right-0 flex justify-center pt-3">
+                        <span className="border border-white/40 text-white font-serif text-xs tracking-widest uppercase px-3 py-1.5 bg-black/20 backdrop-blur-sm text-center w-4/5">
+                          {t(img.labelEn, img.labelHe)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
       }
     </div>
   )
@@ -820,10 +839,41 @@ export default function GuestPage() {
         {view === 'concerts' && <ConcertsScreen concerts={concerts} base={base} fadingOut={fadingOut} />}
 
         {/* Menu category screens */}
-        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ soup: `${base}images/menu/food/soup.jpg`, salads: `${base}images/menu/food/egg_salad.jpeg`, bread: `${base}images/menu/food/egg_salad.jpeg`, sandwiches: `${base}images/menu/food/egg_salad.jpeg`, toasts: `${base}images/menu/food/egg_salad.jpeg` }} />}
-        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ coffee: `${base}images/menu/coffee/cafe.JPG`, soft_drinks: `${base}images/menu/coffee/orange.JPG` }} categoryImagePositions={{ coffee: 'center 100%', soft_drinks: 'center 80%' }} />}
+        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut}
+          categoryImages={{
+            soup:        `${base}images/menu/food/soup.jpg`,
+            salads:      `${base}images/menu/food/tomatoe_salad.JPG`,
+            bread:       `${base}images/menu/food/artichoke_roasted_tomatoes.JPG`,
+            sandwiches:  `${base}images/menu/food/mortadela2.JPG`,
+            toasts:      `${base}images/menu/food/ham_cheese.JPG`,
+          }}
+          categoryImagePositions={{ toasts: 'center 30%' }}
+          allDishImages={[
+            { src: `${base}images/menu/food/eggplant.JPG`,                  labelEn: 'Eggplant & Matbucha',   labelHe: 'חציל מטבוחה' },
+            { src: `${base}images/menu/food/artichoke_roasted_tomatoes.JPG`,labelEn: 'Artichoke & Tomatos',   labelHe: 'ארטישוק עגבניות צלויות' },
+            { src: `${base}images/menu/food/tomatoe_salad.JPG`,             labelEn: 'Tomato Salad',          labelHe: 'סלט עגבניות' },
+            { src: `${base}images/menu/food/mortadela2.JPG`,                labelEn: 'Mortadella',            labelHe: 'מורטדלה' },
+            { src: `${base}images/menu/food/egg_salad.JPG`,                 labelEn: 'Egg Salad',             labelHe: 'סלט ביצים' },
+            { src: `${base}images/menu/food/srtichoke_sandwitch.JPG`,       labelEn: 'Artichoke',             labelHe: 'ארטישוק' },
+            { src: `${base}images/menu/food/toasts.jpg`,                    labelEn: 'Pesto Gouda',           labelHe: 'פסטו גאודה' },
+            { src: `${base}images/menu/food/ham_cheese.JPG`,                labelEn: 'Pastrami & Cheese',     labelHe: 'פסטרמה מוצרלה' },
+            { src: `${base}images/menu/food/gaude_pickled_lemon.JPG`,       labelEn: 'Gouda & Pickled Lemon', labelHe: 'גאודה לימון כבוש' },
+            { src: `${base}images/menu/food/soup.jpg`,                      labelEn: 'Soup',                  labelHe: 'מרק' },
+          ]}
+        />}
+        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ coffee: `${base}images/menu/coffee/cafe.JPG`, soft_drinks: `${base}images/menu/coffee/vibe.jpg` }} categoryImagePositions={{ coffee: 'center 100%', soft_drinks: 'center 85%' }} />}
         {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ beer: `${base}images/menu/alcohol/Beers.JPG`, cocktails: `${base}images/menu/alcohol/Amadeus.JPG`, red_wine: `${base}images/menu/alcohol/Wine.JPG`, white_wine: `${base}images/menu/alcohol/Wine.JPG`, liqueurs: `${base}images/menu/alcohol/HardLiquers.JPG` }} categoryImagePositions={{ cocktails: 'center 30%', red_wine: 'center 80%', white_wine: 'center 80%', liqueurs: 'center 60%' }} />}
-        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ pastries: `${base}images/menu/pastries/sweet.jpeg` }} categoryImagePositions={{ pastries: 'center 68%' }} />}
+        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut}
+          categoryImages={{ pastries: `${base}images/menu/pastries/Pastries.JPG` }}
+          categoryImagePositions={{ pastries: 'center 50%' }}
+          allDishImages={[
+            { src: `${base}images/menu/pastries/brownies.JPG`,  labelEn: 'Brownies',   labelHe: 'בראוניז' },
+            { src: `${base}images/menu/pastries/croason.jpeg`,  labelEn: 'Croissant',  labelHe: 'קרואסון' },
+            { src: `${base}images/menu/pastries/lemon_pie.jpg`, labelEn: 'Lemon Pie',  labelHe: 'פאי לימון' },
+            { src: `${base}images/menu/pastries/tart_2.JPG`,    labelEn: 'Tart',       labelHe: 'טארט' },
+            { src: `${base}images/menu/pastries/borekas.jpg`,   labelEn: 'Burrekas',   labelHe: 'בורקסים' },
+          ]}
+        />}
 
         {/* WiFi screen */}
         {view === 'wifi' && <WifiScreen wifi={wifi} loading={wifiLoading} error={wifiError} fadingOut={fadingOut} />}

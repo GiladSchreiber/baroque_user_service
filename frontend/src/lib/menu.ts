@@ -2,7 +2,7 @@
 
 export const CATEGORY_META: Record<string, { en: string; he: string }> = {
   // food
-  bread:       { en: 'Bread',       he: 'על לחם' },
+  bread:       { en: 'Bread',       he: 'על הלחם' },
   salads:      { en: 'Salads',      he: 'סלטים' },
   sandwiches:  { en: 'Sandwiches',  he: 'סנדוויצ\'ים' },
   toasts:      { en: 'Toasts',      he: 'טוסטים' },

@@ -20,6 +20,7 @@
   { "menu_type": "food", "category": "pastries", "name_en": "Butter Croissant", "name_he": "קרואסון חמאה", "description_en": null, "description_he": null, "price_display": "16", "is_vegetarian": false, "is_seasonal": false },
   { "menu_type": "food", "category": "pastries", "name_en": "Special Croissant", "name_he": "קרואסון עם מילוי", "description_en": null, "description_he": null, "price_display": "17", "is_vegetarian": false, "is_seasonal": false },
   { "menu_type": "food", "category": "pastries", "name_en": "Almond Pie", "name_he": "פאי שקדים ופרי", "description_en": null, "description_he": null, "price_display": "30", "is_vegetarian": false, "is_seasonal": false },
+  { "menu_type": "food", "category": "pastries", "name_en": "Burrekas", "name_he": "בורקסים", "description_en": null, "description_he": null, "price_display": "18", "is_vegetarian": false, "is_seasonal": false },
   { "menu_type": "drink", "category": "coffee", "name_en": "Espresso", "name_he": "אספרסו", "description_en": null, "description_he": null, "price_display": "11", "is_vegetarian": false, "is_seasonal": false },
   { "menu_type": "drink", "category": "coffee", "name_en": "Cortado", "name_he": "קורטדו", "description_en": null, "description_he": null, "price_display": "12", "is_vegetarian": false, "is_seasonal": false },
   { "menu_type": "drink", "category": "coffee", "name_en": "Macchiato", "name_he": "מקיאטו", "description_en": null, "description_he": null, "price_display": "12", "is_vegetarian": false, "is_seasonal": false },

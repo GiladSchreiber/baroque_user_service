@@ -3,6 +3,12 @@ import { CATEGORY_META } from '../lib/menu'
 import MenuItemCard from './MenuItemCard'
 import type { MenuItem } from '../types'
 
+export interface DishImage {
+  src: string
+  labelEn: string
+  labelHe: string
+}
+
 interface Props {
   category: string
   items: MenuItem[]
