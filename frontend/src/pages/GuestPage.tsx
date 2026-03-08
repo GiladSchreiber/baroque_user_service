@@ -1175,15 +1175,20 @@ export default function GuestPage() {
             <div className="relative z-10 flex flex-col items-center gap-10 px-8 w-full">
               {/* Logo + tagline */}
               <div className="flex flex-col items-center gap-3">
-                <img
-                  src={`${base}logo.png`} alt="Baroque" className="h-16 w-auto select-none"
-                  style={{ filter: 'invert(1)', WebkitTouchCallout: 'none', touchAction: 'none', userSelect: 'none' }}
+                <div
+                  className="select-none"
+                  style={{ WebkitTouchCallout: 'none', touchAction: 'none', userSelect: 'none' }}
                   onPointerDown={startLongPress}
                   onPointerUp={cancelLongPress}
                   onPointerLeave={cancelLongPress}
                   onContextMenu={e => e.preventDefault()}
-                  draggable={false}
-                />
+                >
+                  <img
+                    src={`${base}logo.png`} alt="Baroque" className="h-16 w-auto pointer-events-none select-none"
+                    style={{ filter: 'invert(1)' }}
+                    draggable={false}
+                  />
+                </div>
                 <p className="flex items-center gap-2 text-white/60 text-xs tracking-[0.35em] uppercase">
                   {[
                     { text: 'Bar',  delay: 0.4 },
