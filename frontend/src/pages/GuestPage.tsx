@@ -1177,7 +1177,7 @@ export default function GuestPage() {
               <div className="flex flex-col items-center gap-3">
                 <img
                   src={`${base}logo.png`} alt="Baroque" className="h-16 w-auto select-none"
-                  style={{ filter: 'invert(1)' }}
+                  style={{ filter: 'invert(1)', WebkitTouchCallout: 'none', touchAction: 'none', userSelect: 'none' }}
                   onPointerDown={startLongPress}
                   onPointerUp={cancelLongPress}
                   onPointerLeave={cancelLongPress}
