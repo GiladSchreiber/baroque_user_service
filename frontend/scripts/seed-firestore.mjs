@@ -2,7 +2,7 @@
 //   node --env-file=.env.local scripts/seed-firestore.mjs
 
 import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, addDoc, setDoc, doc } from 'firebase/firestore'
+import { getFirestore, collection, addDoc, setDoc, doc, getDocs, deleteDoc } from 'firebase/firestore'
 import { readFileSync } from 'fs'
 
 const firebaseConfig = {
@@ -30,5 +30,30 @@ console.log('\nDone.')
 const wifi = JSON.parse(readFileSync('./public/data/wifi.json', 'utf8'))
 await setDoc(doc(db, 'config', 'wifi'), wifi)
 console.log('WiFi config seeded.')
+
+// ── Gallery ───────────────────────────────────────────────────────────────────
+const gallery = JSON.parse(readFileSync('./public/data/gallery.json', 'utf8'))
+console.log(`Seeding ${gallery.length} gallery images...`)
+for (let i = 0; i < gallery.length; i++) {
+  await addDoc(collection(db, 'gallery'), { url: gallery[i], order: i })
+  process.stdout.write('.')
+}
+console.log('\nGallery seeded.')
+
+// ── Events ────────────────────────────────────────────────────────────────────
+const concerts = JSON.parse(readFileSync('./public/data/concerts.json', 'utf8'))
+console.log(`Seeding ${concerts.length} events...`)
+for (let i = 0; i < concerts.length; i++) {
+  const c = concerts[i]
+  await addDoc(collection(db, 'events'), {
+    title:      c.title,
+    title_he:   c.title_he ?? c.title,
+    date:       '',
+    poster_url: `images/concerts/${c.file}`,
+    order:      i,
+  })
+  process.stdout.write('.')
+}
+console.log('\nEvents seeded.')
 
 process.exit(0)
