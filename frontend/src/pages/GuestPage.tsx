@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useLang } from '../context/LangContext'
+import { useAuth } from '../context/AuthContext'
 import CategorySection, { type DishImage } from '../components/CategorySection'
 import FoodCategorySection from '../components/FoodCategorySection'
 import type { MenuItem } from '../types'
@@ -104,6 +105,7 @@ function GridTile({ image, labelEn, labelHe, onClick, animDelay = 0, animVariant
 
 interface MenuCategoryScreenProps {
   cats: string[]
+  menuType: string
   allItems: MenuItem[]
   loading: boolean
   error: string | null
@@ -114,9 +116,13 @@ interface MenuCategoryScreenProps {
   layout?: 'list' | 'grid'
   categoryItemImages?: Record<string, string>
   defaultItemImage?: string
+  editMode?: boolean
+  onUpdate?: (id: string, changes: Partial<MenuItem>) => void
+  onDelete?: (id: string) => void
+  onAdd?: (item: Omit<MenuItem, 'id'>) => void
 }
 
-function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions, allDishImages, layout = 'list', categoryItemImages, defaultItemImage }: MenuCategoryScreenProps) {
+function MenuCategoryScreen({ cats, menuType, allItems, loading, error, fadingOut = false, categoryImages, categoryImagePositions, allDishImages, layout = 'list', categoryItemImages, defaultItemImage, editMode, onUpdate, onDelete, onAdd }: MenuCategoryScreenProps) {
   const { t, lang } = useLang()
   const items   = allItems.filter(i => cats.includes(i.category))
   const grouped = groupByCategory(items, cats)
@@ -133,7 +139,7 @@ function MenuCategoryScreen({ cats, allItems, loading, error, fadingOut = false,
           : <>
               {layout === 'grid'
                 ? grouped.map(([cat, catItems]) => <FoodCategorySection key={cat} category={cat} items={catItems} itemImage={categoryItemImages?.[cat] ?? defaultItemImage ?? ''} />)
-                : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} />)
+                : grouped.map(([cat, catItems]) => <CategorySection key={cat} category={cat} menuType={menuType} items={catItems} imageSrc={categoryImages?.[cat]} imagePosition={categoryImagePositions?.[cat]} editMode={editMode} onUpdate={onUpdate} onDelete={onDelete} onAdd={onAdd} />)
               }
               {allDishImages && allDishImages.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 -mx-4">
@@ -510,7 +516,58 @@ function GalleryScreen({ images, base, fadingOut = false }: GalleryScreenProps) 
 
 export default function GuestPage() {
   const { lang, setLang, t } = useLang()
+  const { user, editMode, setEditMode, login, logout } = useAuth()
   const base = import.meta.env.BASE_URL
+
+  // ── Admin login modal ─────────────────────────────────────────────────────────
+  const [showLogin, setShowLogin]     = useState(false)
+  const [loginEmail, setLoginEmail]   = useState('')
+  const [loginPwd, setLoginPwd]       = useState('')
+  const [loginError, setLoginError]   = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginError('')
+    setLoginLoading(true)
+    try {
+      await login(loginEmail, loginPwd)
+      setShowLogin(false)
+      setLoginEmail('')
+      setLoginPwd('')
+    } catch {
+      setLoginError('Incorrect email or password')
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
+  // ── Long-press on logo (3s) → show login ─────────────────────────────────────
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startLongPress = () => {
+    if (user) return // already logged in
+    longPressTimer.current = setTimeout(() => setShowLogin(true), 3000)
+  }
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+  }
+
+  // ── Firestore mutations ───────────────────────────────────────────────────────
+  const handleUpdateItem = async (id: string, changes: Partial<MenuItem>) => {
+    const { id: _, ...data } = changes as MenuItem
+    await updateDoc(doc(db, 'menu_items', id), data)
+    setAllItems(prev => prev.map(item => item.id === id ? { ...item, ...changes } : item))
+  }
+
+  const handleDeleteItem = async (id: string) => {
+    await deleteDoc(doc(db, 'menu_items', id))
+    setAllItems(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleAddItem = async (newItem: Omit<MenuItem, 'id'>) => {
+    const ref = await addDoc(collection(db, 'menu_items'), newItem)
+    setAllItems(prev => [...prev, { id: ref.id, ...newItem }])
+  }
 
   // ── Image preloading ─────────────────────────────────────────────────────────
   const [imagesReady, setImagesReady] = useState(false)
@@ -662,7 +719,7 @@ export default function GuestPage() {
   useEffect(() => {
     getDocs(collection(db, 'menu_items'))
       .then(snap => {
-        const items = snap.docs.map(d => d.data() as MenuItem)
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MenuItem))
         setAllItems(items)
       })
       .catch((e: Error) => setMenuError(e.message))
@@ -771,7 +828,14 @@ export default function GuestPage() {
             <div className="relative z-10 flex flex-col items-center gap-10 px-8 w-full">
               {/* Logo + tagline */}
               <div className="flex flex-col items-center gap-3">
-                <img src={`${base}logo.png`} alt="Baroque" className="h-16 w-auto" style={{ filter: 'invert(1)' }} />
+                <img
+                  src={`${base}logo.png`} alt="Baroque" className="h-16 w-auto select-none"
+                  style={{ filter: 'invert(1)' }}
+                  onPointerDown={startLongPress}
+                  onPointerUp={cancelLongPress}
+                  onPointerLeave={cancelLongPress}
+                  draggable={false}
+                />
                 <p className="flex items-center gap-2 text-white/60 text-xs tracking-[0.35em] uppercase">
                   {[
                     { text: 'Bar',  delay: 0.4 },
@@ -845,7 +909,7 @@ export default function GuestPage() {
         {view === 'concerts' && <ConcertsScreen concerts={concerts} base={base} fadingOut={fadingOut} />}
 
         {/* Menu category screens */}
-        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS}     allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut}
+        {view === 'menu-food'     && <MenuCategoryScreen cats={FOOD_CATS} menuType="food" allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut}
           categoryImages={{
             soup:        `${base}images/menu/food/soup.jpg`,
             salads:      `${base}images/menu/food/tomatoe_salad.JPG`,
@@ -866,10 +930,11 @@ export default function GuestPage() {
             { src: `${base}images/menu/food/gaude_pickled_lemon.JPG`,       labelEn: 'Gouda & Pickled Lemon', labelHe: 'גאודה לימון כבוש' },
             { src: `${base}images/menu/food/soup.jpg`,                      labelEn: 'Soup',                  labelHe: 'מרק' },
           ]}
+          editMode={editMode} onUpdate={handleUpdateItem} onDelete={handleDeleteItem} onAdd={handleAddItem}
         />}
-        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ coffee: `${base}images/menu/coffee/cafe.JPG`, soft_drinks: `${base}images/menu/coffee/vibe.jpg` }} categoryImagePositions={{ coffee: 'center 100%', soft_drinks: 'center 85%' }} />}
-        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ beer: `${base}images/menu/alcohol/Beers.JPG`, cocktails: `${base}images/menu/alcohol/Amadeus.JPG`, red_wine: `${base}images/menu/alcohol/Wine.JPG`, white_wine: `${base}images/menu/alcohol/Wine.JPG`, liqueurs: `${base}images/menu/alcohol/HardLiquers.JPG` }} categoryImagePositions={{ cocktails: 'center 30%', red_wine: 'center 80%', white_wine: 'center 80%', liqueurs: 'center 60%' }} />}
-        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut}
+        {view === 'menu-coffee'   && <MenuCategoryScreen cats={COFFEE_CATS}   menuType="drink" allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ coffee: `${base}images/menu/coffee/cafe.JPG`, soft_drinks: `${base}images/menu/coffee/vibe.jpg` }} categoryImagePositions={{ coffee: 'center 100%', soft_drinks: 'center 85%' }} editMode={editMode} onUpdate={handleUpdateItem} onDelete={handleDeleteItem} onAdd={handleAddItem} />}
+        {view === 'menu-alcohol'  && <MenuCategoryScreen cats={ALCOHOL_CATS}  menuType="drink" allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut} categoryImages={{ beer: `${base}images/menu/alcohol/Beers.JPG`, cocktails: `${base}images/menu/alcohol/Amadeus.JPG`, red_wine: `${base}images/menu/alcohol/Wine.JPG`, white_wine: `${base}images/menu/alcohol/Wine.JPG`, liqueurs: `${base}images/menu/alcohol/HardLiquers.JPG` }} categoryImagePositions={{ cocktails: 'center 30%', red_wine: 'center 80%', white_wine: 'center 80%', liqueurs: 'center 60%' }} editMode={editMode} onUpdate={handleUpdateItem} onDelete={handleDeleteItem} onAdd={handleAddItem} />}
+        {view === 'menu-pastries' && <MenuCategoryScreen cats={PASTRIES_CATS} menuType="food"  allItems={allItems} loading={menuLoading} error={menuError} fadingOut={fadingOut}
           categoryImages={{ pastries: `${base}images/menu/pastries/Pastries.JPG` }}
           categoryImagePositions={{ pastries: 'center 50%' }}
           allDishImages={[
@@ -879,6 +944,7 @@ export default function GuestPage() {
             { src: `${base}images/menu/pastries/tart_2.JPG`,    labelEn: 'Tart',       labelHe: 'טארט' },
             { src: `${base}images/menu/pastries/borekas.jpg`,   labelEn: 'Burrekas',   labelHe: 'בורקסים' },
           ]}
+          editMode={editMode} onUpdate={handleUpdateItem} onDelete={handleDeleteItem} onAdd={handleAddItem}
         />}
 
         {/* WiFi screen */}
@@ -924,6 +990,61 @@ export default function GuestPage() {
           </span>
         </a>
       </footer>
+
+      {/* ── Admin: edit mode toggle (only when logged in) ── */}
+      {user && (
+        <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2">
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${editMode ? 'bg-gold text-baroque-bg border-gold' : 'bg-baroque-bg/90 text-baroque-muted border-baroque-border'}`}
+          >
+            {editMode ? '✓ Editing' : '✎ Edit'}
+          </button>
+          <button onClick={logout} className="text-[10px] text-baroque-muted hover:text-gold transition-colors">
+            Log out
+          </button>
+        </div>
+      )}
+
+      {/* ── Admin: login modal ── */}
+      {showLogin && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70" onClick={() => setShowLogin(false)}>
+          <form
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleLogin}
+            className="bg-baroque-bg border border-baroque-border rounded-lg p-6 w-72 flex flex-col gap-3"
+          >
+            <h2 className="font-serif text-gold text-center tracking-widest uppercase text-sm">Admin Login</h2>
+            <input
+              type="email"
+              placeholder="Email"
+              autoComplete="email"
+              value={loginEmail}
+              onChange={e => setLoginEmail(e.target.value)}
+              className="bg-baroque-surface border border-baroque-border rounded px-3 py-2 text-sm text-baroque-text focus:outline-none focus:border-gold"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              autoComplete="current-password"
+              value={loginPwd}
+              onChange={e => setLoginPwd(e.target.value)}
+              className="bg-baroque-surface border border-baroque-border rounded px-3 py-2 text-sm text-baroque-text focus:outline-none focus:border-gold"
+              required
+            />
+            {loginError && <p className="text-red-400 text-xs text-center">{loginError}</p>}
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="bg-gold text-baroque-bg font-medium text-sm py-2 rounded disabled:opacity-50"
+            >
+              {loginLoading ? 'Signing in…' : 'Sign in'}
+            </button>
+            <button type="button" onClick={() => setShowLogin(false)} className="text-baroque-muted text-xs text-center">Cancel</button>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,13 @@
 import { LangProvider } from './context/LangContext'
+import { AuthProvider } from './context/AuthContext'
 import GuestPage from './pages/GuestPage'
 
 export default function App() {
-  return <LangProvider><GuestPage /></LangProvider>
+  return (
+    <AuthProvider>
+      <LangProvider>
+        <GuestPage />
+      </LangProvider>
+    </AuthProvider>
+  )
 }

@@ -1,4 +1,5 @@
 export interface MenuItem {
+  id?: string
   menu_type: string
   category: string
   name_en: string
