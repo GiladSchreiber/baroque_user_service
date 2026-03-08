@@ -1181,6 +1181,7 @@ export default function GuestPage() {
                   onPointerDown={startLongPress}
                   onPointerUp={cancelLongPress}
                   onPointerLeave={cancelLongPress}
+                  onContextMenu={e => e.preventDefault()}
                   draggable={false}
                 />
                 <p className="flex items-center gap-2 text-white/60 text-xs tracking-[0.35em] uppercase">
