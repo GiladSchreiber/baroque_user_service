@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 import { useLang } from '../context/LangContext'
 import CategorySection, { type DishImage } from '../components/CategorySection'
 import FoodCategorySection from '../components/FoodCategorySection'
@@ -641,9 +643,11 @@ export default function GuestPage() {
   }, [])
 
   useEffect(() => {
-    fetch(`${base}data/wifi.json`)
-      .then(r => { if (!r.ok) throw new Error('wifi fetch failed'); return r.json() })
-      .then(data => setWifi(data))
+    getDoc(doc(db, 'config', 'wifi'))
+      .then(snap => {
+        if (!snap.exists()) throw new Error('wifi doc not found')
+        setWifi(snap.data() as { ssid: string; password: string })
+      })
       .catch((e: Error) => setWifiError(e.message))
       .finally(() => setWifiLoading(false))
   }, [])
@@ -656,9 +660,11 @@ export default function GuestPage() {
   }, [])
 
   useEffect(() => {
-    fetch(`${base}data/menu.json`)
-      .then(r => { if (!r.ok) throw new Error('menu fetch failed'); return r.json() })
-      .then(data => setAllItems(data))
+    getDocs(collection(db, 'menu_items'))
+      .then(snap => {
+        const items = snap.docs.map(d => d.data() as MenuItem)
+        setAllItems(items)
+      })
       .catch((e: Error) => setMenuError(e.message))
       .finally(() => setMenuLoading(false))
   }, [])
