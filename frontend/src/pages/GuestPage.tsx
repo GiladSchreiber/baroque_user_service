@@ -751,7 +751,7 @@ function GalleryScreen({ items, base, fadingOut = false, editMode, onAdd, onDele
                 className="absolute inset-0"
                 style={{ animation: `gallery${slideOutAnim.charAt(0).toUpperCase() + slideOutAnim.slice(1)} 0.3s ease-out forwards` }}
               >
-                <img src={`${base}${images[prevLbIdx]}`} alt="" className="w-full h-full object-contain" />
+                <img src={images[prevLbIdx]} alt="" className="w-full h-full object-contain" />
               </div>
             )}
             <div
@@ -759,7 +759,7 @@ function GalleryScreen({ items, base, fadingOut = false, editMode, onAdd, onDele
               className="absolute inset-0"
               style={prevLbIdx !== null ? { animation: `gallery${slideInAnim.charAt(0).toUpperCase() + slideInAnim.slice(1)} 0.3s ease-out` } : {}}
             >
-              <img src={`${base}${images[lightboxIdx]}`} alt="" className="w-full h-full object-contain" />
+              <img src={images[lightboxIdx]} alt="" className="w-full h-full object-contain" />
             </div>
           </div>
 
