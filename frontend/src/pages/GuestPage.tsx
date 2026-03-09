@@ -61,30 +61,6 @@ function groupByCategory(items: MenuItem[], order: string[]): [string, MenuItem[
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function CoverEditor({ coverItems, onAdd, onDelete }: { coverItems: GalleryItem[], onAdd: (f: File) => Promise<void>, onDelete: (id: string) => Promise<void> }) {
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  return (
-    <div className="flex flex-wrap justify-center gap-2 max-w-xs">
-      {coverItems.map(c => (
-        <div key={c.id} className="relative w-12 h-12 rounded overflow-hidden">
-          <img src={c.url} className="w-full h-full object-cover" alt="" />
-          <button onClick={() => c.id && onDelete(c.id)} className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">✕</button>
-        </div>
-      ))}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden"
-        onChange={async e => {
-          const f = e.target.files?.[0]; if (!f) return
-          setUploading(true); try { await onAdd(f) } finally { setUploading(false); e.target.value = '' }
-        }}
-      />
-      <button onClick={() => fileRef.current?.click()} disabled={uploading}
-        className="w-12 h-12 rounded border border-dashed border-white/40 text-white/60 text-lg flex items-center justify-center disabled:opacity-50">
-        {uploading ? '…' : '+'}
-      </button>
-    </div>
-  )
-}
 
 function MenuSkeleton() {
   return (
@@ -885,67 +861,33 @@ export default function GuestPage() {
     setBannerOverrides(prev => ({ ...prev, [category]: url }))
   }
 
-  // ── Cover mutations ───────────────────────────────────────────────────────────
-  const handleAddCover = async (file: File) => {
-    const url = await uploadImage(file, 'covers')
-    const ref = await addDoc(collection(db, 'covers'), { url, order: coverItems.length })
-    setCoverItems(prev => [...prev, { id: ref.id, url, order: prev.length }])
-  }
-  const handleDeleteCover = async (id: string) => {
-    await deleteDoc(doc(db, 'covers', id))
-    setCoverItems(prev => prev.filter(c => c.id !== id))
-  }
 
-  // ── Image preloading ─────────────────────────────────────────────────────────
+  // ── Image preloading — only home + nav images (all local/static) ─────────────
   const [imagesReady, setImagesReady] = useState(false)
   useEffect(() => {
-    const staticSrcs = [
+    const srcs = [
       `${base}logo.png`,
       `${base}images/cover_app1.jpg`,
       `${base}images/cover_app2.jpg`,
       `${base}images/cover_app3.jpg`,
       `${base}images/cover_app4.jpg`,
-      `${base}images/categories/concerts.jpg`,
-      `${base}images/categories/menu.jpg`,
-      `${base}images/categories/wifi.jpeg`,
-      `${base}images/categories/yad2.jpeg`,
       `${base}images/categories/food.jpg`,
       `${base}images/categories/coffee.jpg`,
       `${base}images/categories/alcohol.jpeg`,
       `${base}images/categories/pastries.jpg`,
-      `${base}images/menu/pastries/sweet.jpeg`,
-      `${base}images/menu/coffee/cafe.JPG`,
-      `${base}images/menu/coffee/orange.JPG`,
-      `${base}images/menu/food/egg_salad.jpeg`,
-      `${base}images/menu/food/soup.jpg`,
-      `${base}images/menu/alcohol/Beers.JPG`,
-      `${base}images/menu/alcohol/Amadeus.JPG`,
-      `${base}images/menu/alcohol/Wine.JPG`,
-      `${base}images/menu/alcohol/HardLiquers.JPG`,
     ]
-
-    const preload = (srcs: string[]) => {
-      if (srcs.length === 0) { setImagesReady(true); return }
-      let remaining = srcs.length
-      const done = () => { if (--remaining === 0) setImagesReady(true) }
-      srcs.forEach(src => {
-        const img = new Image()
-        img.onload = done
-        img.onerror = done
-        img.src = src
-      })
-    }
-
-    // Fetch events from Firestore, then preload their posters
-    getDocs(query(collection(db, 'events'), orderBy('order')))
-      .then(snap => {
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as ConcertItem))
-        setConcerts(data)
-        const concertSrcs = data.map(c => resolveUrl(c.poster_url, base))
-        preload([...staticSrcs, ...concertSrcs])
-      })
-      .catch(() => preload(staticSrcs))
+    let remaining = srcs.length
+    const done = () => { if (--remaining === 0) setImagesReady(true) }
+    srcs.forEach(src => { const img = new Image(); img.onload = done; img.onerror = done; img.src = src })
   }, [base])
+
+  // ── Fetch concerts separately (not blocking the splash screen) ───────────────
+  useEffect(() => {
+    getDocs(query(collection(db, 'events'), orderBy('order')))
+      .then(snap => setConcerts(snap.docs.map(d => ({ id: d.id, ...d.data() } as ConcertItem))))
+      .catch(() => {})
+  }, [])
+
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const [history, setHistory] = useState<View[]>(['home'])
@@ -1005,7 +947,6 @@ export default function GuestPage() {
   const [wifiLoading, setWifiLoading]     = useState(true)
   const [wifiError, setWifiError]         = useState<string | null>(null)
   const [galleryItems, setGalleryItems]       = useState<GalleryItem[]>([])
-  const [coverItems, setCoverItems]           = useState<GalleryItem[]>([])
   const [bannerOverrides, setBannerOverrides] = useState<Record<string, string>>({})
   const [dishImageOverrides, setDishImageOverrides] = useState<Record<string, DishImage[]>>({})
 
@@ -1013,19 +954,13 @@ export default function GuestPage() {
   const firstHomeLoad = useRef(true)
   useEffect(() => { if (view !== 'home') firstHomeLoad.current = false }, [view])
 
-  // ── Covers — fetched from Firestore (falls back to static if empty) ──────────
-  const staticCovers = [
+  // ── Covers — static, served from GitHub Pages ────────────────────────────────
+  const coverImages = [
     `${base}images/cover_app1.jpg`,
     `${base}images/cover_app2.jpg`,
     `${base}images/cover_app3.jpg`,
     `${base}images/cover_app4.jpg`,
   ]
-  useEffect(() => {
-    getDocs(query(collection(db, 'covers'), orderBy('order')))
-      .then(snap => { if (!snap.empty) setCoverItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as GalleryItem))) })
-      .catch(() => {})
-  }, [])
-  const coverImages = coverItems.length > 0 ? coverItems.map(c => c.url) : staticCovers
   const [coverIndex, setCoverIndex] = useState(2)
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>
@@ -1062,6 +997,17 @@ export default function GuestPage() {
       .then(snap => { if (snap.exists()) setDishImageOverrides(snap.data() as Record<string, DishImage[]>) })
       .catch(() => {})
   }, [])
+
+  // ── Background prefetch for dynamic Firebase Storage overrides ───────────────
+  useEffect(() => {
+    Object.values(bannerOverrides).filter(u => u.startsWith('http'))
+      .forEach(src => { const img = new Image(); img.src = src })
+  }, [bannerOverrides])
+
+  useEffect(() => {
+    Object.values(dishImageOverrides).flat().map(d => d.src).filter(s => s.startsWith('http'))
+      .forEach(src => { const img = new Image(); img.src = src })
+  }, [dishImageOverrides])
 
   useEffect(() => {
     getDocs(collection(db, 'menu_items'))
@@ -1205,7 +1151,6 @@ export default function GuestPage() {
               </div>
 
               {/* Cover edit controls (admin only) */}
-              {editMode && <CoverEditor coverItems={coverItems} onAdd={handleAddCover} onDelete={handleDeleteCover} />}
 
               {/* Nav buttons */}
               <div
